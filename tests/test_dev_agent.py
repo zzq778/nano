@@ -148,7 +148,7 @@ class GitSyncIntegration(unittest.TestCase):
             run(['git', 'config', 'user.email', 'test@example.com'], src)
             run(['git', 'config', 'user.name', 'Test'], src)
             run(['git', 'checkout', '-qb', 'main'], src)
-            (src / 'README.md').write_text('from-main\\n')
+            (src / 'README.md').write_text('from-main\n')
             run(['git', 'add', 'README.md'], src)
             run(['git', 'commit', '-qm', 'initial'], src)
             run(['git', 'checkout', '-qb', 'chat/test-1'], src)
@@ -160,13 +160,13 @@ class GitSyncIntegration(unittest.TestCase):
             run(['git', 'clone', '--no-checkout', '-q', str(bare), str(workspace)])
             self.assertEqual({p.name for p in workspace.iterdir()}, {'.git'})
             self.assertIn('D  README.md', run(['git', 'status', '--porcelain'], workspace))
-            with mock.patch.object(dev_agent, 'WORK_ROOT', workspace), \\
+            with mock.patch.object(dev_agent, 'WORK_ROOT', workspace), \
                     mock.patch.object(dev_agent, 'PUBLIC_SOURCE_URL', str(bare)):
                 result = dev_agent.sync_code(
                     {'action': 'sync_code', 'branch': 'chat/test-1',
                      'expected_sha': sha}, bridge.capture_command)
                 self.assertEqual(result['head'], sha)
-                self.assertEqual((workspace / 'README.md').read_text(), 'from-main\\n')
+                self.assertEqual((workspace / 'README.md').read_text(), 'from-main\n')
                 self.assertFalse(run(['git', 'status', '--porcelain'], workspace))
 
     def test_empty_checkout_refuses_checks(self):
@@ -174,7 +174,7 @@ class GitSyncIntegration(unittest.TestCase):
             workspace = Path(temp) / 'workspace'
             workspace.mkdir()
             (workspace / '.git').mkdir()
-            with mock.patch.object(dev_agent, 'WORK_ROOT', workspace), \\
+            with mock.patch.object(dev_agent, 'WORK_ROOT', workspace), \
                     mock.patch.object(bridge, 'capture_command') as capture:
                 with self.assertRaisesRegex(RuntimeError, 'checkout is empty'):
                     dev_agent.run_check({'action': 'run_check', 'check': 'compileall'},
