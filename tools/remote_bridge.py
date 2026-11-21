@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Small, allowlisted GitHub relay for Jetson Nano (Ubuntu 18.04 / Python 3.6).
+"""GitHub-driven diagnostics and isolated development bridge for Jetson Nano.
 
-No SSH port, sudo, arbitrary shell commands, user-provided paths, or model uploads.
+No SSH port, sudo, arbitrary request-supplied shell commands, or model uploads.
 Requests and results are kept in a private GitHub repository. A fine-grained token
 is stored only on the Jetson under ~/.config/jetson-remote-bridge/token (0600).
 """
@@ -25,6 +25,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+# Also works when this module is loaded by importlib during unit tests.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import dev_agent
+
 REPO = 'zzq778/jetson'
 SOURCE_ROOT = pathlib.Path(__file__).resolve().parent.parent
 CONF_DIR = pathlib.Path.home() / '.config' / 'jetson-remote-bridge'
@@ -33,7 +37,7 @@ LOCK_FILE = CONF_DIR / 'agent.lock'
 POLL_SECONDS = 30
 MAX_OUTPUT_BYTES = 16000
 JOB_ID = re.compile(r'^[a-zA-Z0-9_-]{1,64}$')
-ALLOWED_ACTIONS = ('health', 'nms_smoke', 'python_tests', 'native_build')
+ALLOWED_ACTIONS = ('health', 'nms_smoke', 'python_tests', 'native_build') + dev_agent.VALID_ACTIONS
 
 
 def utc_now():
@@ -78,15 +82,23 @@ class Github(object):
             raise RuntimeError('GitHub HTTP {}: {}'.format(error.code, reason))
 
     def list_jobs(self):
-        items = self.api('GET', 'repos/{}/contents/requests?ref=main'.format(REPO))
-        if not isinstance(items, list):
-            raise RuntimeError('requests directory is not accessible')
-        jobs = []
-        for item in items:
-            name = item.get('name', '')
-            if name.endswith('.json') and JOB_ID.fullmatch(name[:-5]):
-                jobs.append(name[:-5])
-        return sorted(jobs)[:10]
+        # Filter completed jobs *before* capping a batch. The previous first-10
+        # limit stopped finding new jobs once ten old requests accumulated.
+        requests = self.api('GET', 'repos/{}/contents/requests?ref=main'.format(REPO))
+        results = self.api('GET', 'repos/{}/contents/results?ref=main'.format(REPO))
+        if not isinstance(requests, list) or not isinstance(results, list):
+            raise RuntimeError('request/result directories are not accessible')
+        # GitHub Contents API returns up to 1000 entries per directory.
+        if len(requests) >= 1000 or len(results) >= 1000:
+            raise RuntimeError('GitHub queue directory full; archive old jobs')
+
+        def job_ids(items):
+            return {name[:-5] for item in items
+                    for name in [item.get('name', '')]
+                    if item.get('type') == 'file' and name.endswith('.json')
+                    and JOB_ID.fullmatch(name[:-5])}
+
+        return sorted(job_ids(requests) - job_ids(results))[:10]
 
     def get_json(self, directory, job_id):
         path = 'repos/{}/contents/{}/{}.json?ref=main'.format(REPO, directory, job_id)
@@ -112,10 +124,11 @@ class Github(object):
         })
 
 
-def capture_command(argv, timeout):
-    # All argv lists are hardcoded below; requests cannot specify commands.
+def capture_command(argv, timeout, cwd=None):
+    # Command lists come from a bounded action allowlist, never job shell text.
+    working_directory = str(SOURCE_ROOT if cwd is None else cwd)
     with tempfile.TemporaryFile() as capture:
-        proc = subprocess.Popen(argv, cwd=str(SOURCE_ROOT), stdout=capture,
+        proc = subprocess.Popen(argv, cwd=working_directory, stdout=capture,
                                 stderr=subprocess.STDOUT, start_new_session=True)
         timed_out = False
         try:
@@ -139,6 +152,7 @@ def capture_command(argv, timeout):
 def execute_action(action):
     if action == 'health':
         return {
+            'bridge_version': 2,
             'host': platform.node(),
             'arch': platform.machine(),
             'system': platform.platform(),
@@ -173,7 +187,10 @@ def process_jobs(client):
         try:
             if job.get('id') != job_id or action not in ALLOWED_ACTIONS:
                 raise ValueError('Rejected request: invalid ID or action')
-            response['detail'] = execute_action(action)
+            if action in dev_agent.VALID_ACTIONS:
+                response['detail'] = dev_agent.execute(job, capture_command)
+            else:
+                response['detail'] = execute_action(action)
             detail = response['detail']
             response['ok'] = (detail.get('returncode', 0) == 0 and
                               not detail.get('timed_out', False))

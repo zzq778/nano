@@ -1,3 +1,5 @@
+> **开发代理 v2 已增加代码检索、独立工作区、Git 分支同步和构建测试。新部署与使用方法优先阅读 [REMOTE_DEV_AGENT_V2.md](REMOTE_DEV_AGENT_V2.md)。以下保留 v1 首次配置步骤。**
+
 # 手机 Chat 模式 → Jetson Nano：受限 GitHub 远程桥接
 
 本方案**不是直接 SSH**：Jetson 自己以 HTTPS 主动查询私人仓库 `zzq778/jetson` 的 `requests/*.json`，只执行预先批准的四种操作，并写入 `results/*.json`。ChatGPT 通过连接的 GitHub 应用创建任务、读取结果。Nano 无需开放 SSH 到公网。
