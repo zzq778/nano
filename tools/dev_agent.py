@@ -68,7 +68,11 @@ def sync_code(job, capture):
     origin = repo_command(capture, 'remote', 'get-url', 'origin')
     if origin != PUBLIC_SOURCE_URL:
         raise RuntimeError('Unexpected remote origin; development workspace unchanged')
-    if repo_command(capture, 'status', '--porcelain', '--untracked-files=no'):
+    # git clone --no-checkout leaves only .git, while Git reports every
+    # tracked file as deleted. An empty checkout contains no user work to
+    # overwrite; it is safe to populate after verifying the exact commit.
+    empty_checkout = {entry.name for entry in root.iterdir()} == {'.git'}
+    if not empty_checkout and repo_command(capture, 'status', '--porcelain', '--untracked-files=no'):
         raise RuntimeError('Tracked changes exist in development workspace; refusing checkout')
     ref = 'refs/remotes/origin/' + branch
     run_checked(capture, ['git', '-C', str(root), 'fetch', '--no-tags',
@@ -192,6 +196,8 @@ def run_check(job, capture):
     if name not in CHECKS:
         raise ValueError('Unsupported check')
     root = require_work_root()
+    if {entry.name for entry in root.iterdir()} == {'.git'}:
+        raise RuntimeError('Development checkout is empty; first run sync_code')
     checks = {
         'pytest': (['python3', '-m', 'pytest', '-q', 'tests'], 420),
         'nms_smoke': (['bash', 'scripts/phone_nms_smoke.sh'], 180),
