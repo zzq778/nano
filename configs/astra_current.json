@@ -1,0 +1,43 @@
+{
+  "source": "User-provided parameter screenshot codex-clipboard-fc662744-0b21-43f9-bed0-d3fccd045ee4.png",
+  "image_size": [
+    640,
+    480
+  ],
+  "intrinsics": {
+    "fx": 493.3689,
+    "fy": 494.2357,
+    "cx": 327.3957,
+    "cy": 234.8487
+  },
+  "optical_center_in_axle_frame_m": {
+    "x": 0.027,
+    "y": 0.0,
+    "z": 0.129
+  },
+  "camera_orientation_deg": {
+    "roll": 0,
+    "pitch_down": 31.6,
+    "yaw": 0.0
+  },
+  "ground_plane_z_m": -0.036,
+  "derived_optical_center_height_above_ground_m": 0.165,
+  "distortion_coefficients": null,
+  "rectification_status": "unknown",
+  "metric_accuracy_verified": false,
+  "usage": "Explicit configuration; no fallback to old engineering calibration",
+  "camera_identity": "ORBBEC ASTRA S2bc5:0402, original unit confirmed by user",
+  "matches_input_camera": true,
+  "scope": "current_astra_user_confirmed_installation",
+  "projection_policy": "pinhole_estimate_unverified_distortion",
+  "binding_source": "Fresh SDK640x480 RGB; user reconfirmed four front distances10/34/54/74cm; pitch fitted to near1/2 only. X27mm/Y0/Z129mm, roll0 and yaw0 retained from user measurements.",
+  "camera_usb_id": "2bc5:0402",
+  "coordinate_frame": "axle_midpoint_X_forward_Y_left_Z_up",
+  "extrinsics_update_date": "2026-11-04",
+  "yaw_update_source": "User explicitly sets yaw0deg2026-11-04",
+  "pitch_calibration_status": "31.6deg engineering estimate from fresh near-reference fit; independent metric accuracy not verified",
+  "pitch_reference_rgb_sha256": "979c9e18e553981158af21e327644e971729d899a18426325a5df21617753dc4",
+  "pitch_fit_evidence": "Astra_SDK工程接入_20261104/restored_pitch_fit.json",
+  "pitch_fit_blocks": [1, 2],
+  "far_reference_uncertainty": "user states distant measurements are approximate; far3/4 excluded from fitting"
+}

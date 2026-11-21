@@ -1,0 +1,22 @@
+{
+  "green_frontend": {
+    "source": "User supplied E:/工创赛/新视觉/topface_lightweight.py; frozen approved snapshot",
+    "sha256": "6ab66a42003324a0ba55e05427e5554b6667c3f68020ef6fad12060aea88f3db",
+    "modified": false
+  },
+  "selected_green_frontend": "r6: native src/topface.cpp uses the selected HSV/LAB/Canny kernel with minimum top-band height aligned to 8 pixels; bounded scheduling adds single-box components only when support extends beyond detector context; typed C ABI and reusable buffers; automatic component-scale proposals, original native V12 in bounded regions, one-to-one association and group-parent rejection unchanged. Python reference exists only under tests. No count truth is loaded.",
+  "v12_reference": {
+    "source": "Audited unified_v12/refine.py",
+    "sha256": "045f6b1af7fdbe10ed148057fd84f91b859a0c7f9c3cd244cef6212aa742edd7",
+    "modified": false
+  },
+  "green_native": "Nano: prepared-frame/local-session API verified on 12 approved-six raw/gaussian pairs; zero differences within 1e-6",
+  "orange_native": "Nano: 36 actual-ROI comparisons against Python reference, zero differences within 1e-5",
+  "blue_center_native": "Nano: six actual-box comparisons, maximum center difference 0.0000071mm; numerical parity, NOT physical accuracy",
+  "metric_solver": "Pure known-size/RGB model math extracted from user-authorized formal handoff a40c59cf67c2cb4abd29d34e3eec82db30c6ea5c; standalone bridge, single/group routing removed, rejected best-angle diagnostics retained; no ROS/control runtime",
+  "yolo": "Audited generic six-class TensorRT detector: four block colors and two whole-refuge colors; not instance segmentation",
+  "non_green_color_frontend": "New explicit HSV automatic adapter, not an archived verified detector",
+  "labels": "Evaluation-only 9/3/2/1 lives outside this project; no evaluation file is packaged",
+  "calibration": "Approved six are confirmed old Astra using supplied K/RT; distortion unknown. Current Astra S uses direct Orbbec SDK and its separate 31.6-degree estimated pitch profile. External 300-image set has a clearly labeled virtual-Astra stress profile only",
+  "models": "Selected blocks_and_zones.engine six-class ordinary detector with audited SHA256; historical unused models are not runtime fallbacks"
+}

@@ -1,0 +1,25 @@
+[Unit]
+Description=Standalone Astra vision and STM32 UART
+After=local-fs.target systemd-udev-settle.service
+Wants=systemd-udev-settle.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=rikibot
+Group=rikibot
+SupplementaryGroups=dialout
+WorkingDirectory=/home/rikibot/vision_research_20261026/full_project_20261027/jetson_vision
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/opt/ros/melodic/lib/python2.7/dist-packages
+Environment=ROS_MASTER_URI=http://localhost:11311
+ExecStart=/usr/bin/python3 app.py --camera astra --sample-interval 5 --sample-limit 120 --ros-image-topic /camera/rgb/image_raw --ros-image-hz 5 --warmup 1 --uart-device /dev/ttyTHS1 --quiet --no-frame-log --output /home/rikibot/vision_logs/current
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=12
+KillMode=control-group
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

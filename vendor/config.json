@@ -1,0 +1,34 @@
+{
+  "dimensions_mm": {
+    "green": [
+      40,
+      40,
+      40
+    ],
+    "blue": [
+      40,
+      40,
+      40
+    ],
+    "orange": [
+      80,
+      40,
+      40
+    ],
+    "black": null
+  },
+  "dimensions_usage": "metadata_only_until_calibrated_intrinsics_extrinsics_available",
+  "preprocess_default": "raw",
+  "preprocess_optional": "gaussian3",
+  "enhancement_auto": false,
+  "green_thresholds": {
+    "back_expand_width": 0.4,
+    "back_upper_width": 0.2,
+    "min_depth_width": 0.16,
+    "max_depth_width": 0.7,
+    "minimum_contrast": 7.0,
+    "fit_residual_fraction": 0.035,
+    "minimum_profiles": 7,
+    "minimum_survival": 0.6
+  }
+}

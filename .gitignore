@@ -1,0 +1,22 @@
+# Hardware-bound / private assets: do not publish trained model weights or camera captures.
+models/
+data/
+build/
+build_*/
+output/
+logs/
+*.engine
+*.onnx
+*.pt
+*.pth
+*.so
+*.log
+*.pem
+*.key
+.env
+.env.*
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.DS_Store

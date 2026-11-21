@@ -1,0 +1,81 @@
+{
+  "environment": {
+    "python": "3.13.5",
+    "opencv": "4.13.0",
+    "model_execution": "fake deterministic boxes; no TensorRT or native metric",
+    "camera": "7 recorded Astra images, not a live camera",
+    "iterations": 50
+  },
+  "geometry_set_position": {
+    "before": {
+      "p50_ms": 14.297,
+      "p95_ms": 15.837,
+      "samples": 40
+    },
+    "after": {
+      "p50_ms": 0.89,
+      "p95_ms": 1.166,
+      "samples": 40
+    },
+    "positions_per_batch": 200,
+    "median_change_pct": 93.78
+  },
+  "pipeline": {
+    "0": {
+      "before": {
+        "p50_ms": 3.959,
+        "p95_ms": 5.136,
+        "samples": 50
+      },
+      "after": {
+        "p50_ms": 4.451,
+        "p95_ms": 5.769,
+        "samples": 50
+      },
+      "parity_images": 7,
+      "median_change_pct": -12.42
+    },
+    "1": {
+      "before": {
+        "p50_ms": 8.077,
+        "p95_ms": 9.99,
+        "samples": 50
+      },
+      "after": {
+        "p50_ms": 9.112,
+        "p95_ms": 11.791,
+        "samples": 50
+      },
+      "parity_images": 7,
+      "median_change_pct": -12.81
+    },
+    "15": {
+      "before": {
+        "p50_ms": 39.56,
+        "p95_ms": 42.362,
+        "samples": 50
+      },
+      "after": {
+        "p50_ms": 37.724,
+        "p95_ms": 41.035,
+        "samples": 50
+      },
+      "parity_images": 7,
+      "median_change_pct": 4.64
+    },
+    "32": {
+      "before": {
+        "p50_ms": 75.026,
+        "p95_ms": 97.458,
+        "samples": 50
+      },
+      "after": {
+        "p50_ms": 73.917,
+        "p95_ms": 84.819,
+        "samples": 50
+      },
+      "parity_images": 7,
+      "median_change_pct": 1.48
+    }
+  }
+}

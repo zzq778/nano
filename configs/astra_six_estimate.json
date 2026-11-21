@@ -1,0 +1,42 @@
+{
+  "source": "User-provided parameter screenshot codex-clipboard-fc662744-0b21-43f9-bed0-d3fccd045ee4.png",
+  "image_size": [
+    640,
+    480
+  ],
+  "intrinsics": {
+    "fx": 493.3689,
+    "fy": 494.2357,
+    "cx": 327.3957,
+    "cy": 234.8487
+  },
+  "optical_center_in_axle_frame_m": {
+    "x": 0,
+    "y": 0.0179,
+    "z": 0.129
+  },
+  "camera_orientation_deg": {
+    "roll": 0,
+    "pitch_down": 26.7,
+    "yaw": -5
+  },
+  "ground_plane_z_m": -0.036,
+  "derived_optical_center_height_above_ground_m": 0.165,
+  "distortion_coefficients": null,
+  "rectification_status": "unknown",
+  "metric_accuracy_verified": false,
+  "usage": "Explicit configuration; no fallback to old engineering calibration",
+  "camera_identity": "Previous Astra RGB, explicitly confirmed by user for all approved six images",
+  "matches_input_camera": true,
+  "scope": "approved_astra_six_only",
+  "projection_policy": "pinhole_estimate_unverified_distortion",
+  "allowed_rgb_sha256": [
+    "9af081d2e4e42c80ed8f025ea291bf26924f8ca97efbc32777b7c38222990002",
+    "f8ef7861e8995ea34cb85883d18369cc17a060245f28e43f8c9013821ad48da4",
+    "48249d7616c48dbe8fd6ea830861e66b498623f802dc96f05e275e5fd9a0735d",
+    "4b64e1fbac46b62d6683971cd9e985aaf59abe6773e8591563e657f5b39831b2",
+    "a1b76d3a4dcf63052aa521d25edb9071a1466aedba1c685b23c61e2a30720fe5",
+    "4bc49123920b1d9e70a1a9a39a682722b487c0d96cec8fb34ce38b5bb760b182"
+  ],
+  "binding_source": "User clarified 2026-10-27: all six images use old Astra and its corresponding extrinsics"
+}

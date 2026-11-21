@@ -1,0 +1,29 @@
+{
+  "source": "User-provided parameter screenshot codex-clipboard-fc662744-0b21-43f9-bed0-d3fccd045ee4.png",
+  "image_size": [
+    640,
+    480
+  ],
+  "intrinsics": {
+    "fx": 493.3689,
+    "fy": 494.2357,
+    "cx": 327.3957,
+    "cy": 234.8487
+  },
+  "optical_center_in_axle_frame_m": {
+    "x": 0,
+    "y": 0.0179,
+    "z": 0.129
+  },
+  "camera_orientation_deg": {
+    "roll": 0,
+    "pitch_down": 26.7,
+    "yaw": -5
+  },
+  "ground_plane_z_m": -0.036,
+  "derived_optical_center_height_above_ground_m": 0.165,
+  "distortion_coefficients": null,
+  "rectification_status": "not yet confirmed",
+  "metric_accuracy_verified": false,
+  "usage": "Explicit configuration; no fallback to old engineering calibration"
+}

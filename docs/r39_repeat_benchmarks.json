@@ -1,0 +1,168 @@
+{
+  "repeats_completed": 2,
+  "aborted_repeat": "third 30-iteration run exceeded host timeout; excluded rather than reported as a result",
+  "data": [
+    {
+      "environment": {
+        "python": "3.13.5",
+        "opencv": "4.13.0",
+        "model_execution": "fake deterministic boxes; no TensorRT or native metric",
+        "camera": "7 recorded Astra images, not a live camera",
+        "iterations": 30
+      },
+      "geometry_set_position": {
+        "before": {
+          "p50_ms": 14.245,
+          "p95_ms": 26.686,
+          "samples": 40
+        },
+        "after": {
+          "p50_ms": 0.896,
+          "p95_ms": 2.28,
+          "samples": 40
+        },
+        "positions_per_batch": 200,
+        "median_change_pct": 93.71
+      },
+      "pipeline": {
+        "0": {
+          "before": {
+            "p50_ms": 4.123,
+            "p95_ms": 6.197,
+            "samples": 30
+          },
+          "after": {
+            "p50_ms": 5.16,
+            "p95_ms": 8.838,
+            "samples": 30
+          },
+          "parity_images": 7,
+          "median_change_pct": -25.16
+        },
+        "1": {
+          "before": {
+            "p50_ms": 9.114,
+            "p95_ms": 11.569,
+            "samples": 30
+          },
+          "after": {
+            "p50_ms": 8.622,
+            "p95_ms": 11.739,
+            "samples": 30
+          },
+          "parity_images": 7,
+          "median_change_pct": 5.4
+        },
+        "15": {
+          "before": {
+            "p50_ms": 38.628,
+            "p95_ms": 78.569,
+            "samples": 30
+          },
+          "after": {
+            "p50_ms": 36.835,
+            "p95_ms": 72.896,
+            "samples": 30
+          },
+          "parity_images": 7,
+          "median_change_pct": 4.64
+        },
+        "32": {
+          "before": {
+            "p50_ms": 76.913,
+            "p95_ms": 174.362,
+            "samples": 30
+          },
+          "after": {
+            "p50_ms": 73.169,
+            "p95_ms": 147.946,
+            "samples": 30
+          },
+          "parity_images": 7,
+          "median_change_pct": 4.87
+        }
+      }
+    },
+    {
+      "environment": {
+        "python": "3.13.5",
+        "opencv": "4.13.0",
+        "model_execution": "fake deterministic boxes; no TensorRT or native metric",
+        "camera": "7 recorded Astra images, not a live camera",
+        "iterations": 30
+      },
+      "geometry_set_position": {
+        "before": {
+          "p50_ms": 14.702,
+          "p95_ms": 16.8,
+          "samples": 40
+        },
+        "after": {
+          "p50_ms": 0.845,
+          "p95_ms": 1.591,
+          "samples": 40
+        },
+        "positions_per_batch": 200,
+        "median_change_pct": 94.25
+      },
+      "pipeline": {
+        "0": {
+          "before": {
+            "p50_ms": 4.202,
+            "p95_ms": 5.446,
+            "samples": 30
+          },
+          "after": {
+            "p50_ms": 4.807,
+            "p95_ms": 6.679,
+            "samples": 30
+          },
+          "parity_images": 7,
+          "median_change_pct": -14.4
+        },
+        "1": {
+          "before": {
+            "p50_ms": 9.508,
+            "p95_ms": 10.89,
+            "samples": 30
+          },
+          "after": {
+            "p50_ms": 8.628,
+            "p95_ms": 10.627,
+            "samples": 30
+          },
+          "parity_images": 7,
+          "median_change_pct": 9.26
+        },
+        "15": {
+          "before": {
+            "p50_ms": 40.425,
+            "p95_ms": 46.318,
+            "samples": 30
+          },
+          "after": {
+            "p50_ms": 38.645,
+            "p95_ms": 44.12,
+            "samples": 30
+          },
+          "parity_images": 7,
+          "median_change_pct": 4.4
+        },
+        "32": {
+          "before": {
+            "p50_ms": 74.718,
+            "p95_ms": 89.967,
+            "samples": 30
+          },
+          "after": {
+            "p50_ms": 70.84,
+            "p95_ms": 82.576,
+            "samples": 30
+          },
+          "parity_images": 7,
+          "median_change_pct": 5.19
+        }
+      }
+    }
+  ]
+}

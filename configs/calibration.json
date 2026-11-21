@@ -1,0 +1,43 @@
+{
+  "camera_identity": "Microdia UVC 0c45:64ab; camera replacement confirmed by user",
+  "source": "User confirmed 2026-10-27: measured parameters belong to previous Astra camera",
+  "image_size": [
+    640,
+    480
+  ],
+  "matches_input_camera": false,
+  "status": "uncalibrated_after_camera_replacement",
+  "intrinsics": null,
+  "distortion_coefficients": null,
+  "rectification_status": "unknown",
+  "optical_center_in_axle_frame_m": {
+    "x": 0.0,
+    "y": 0.0179,
+    "z": 0.129
+  },
+  "camera_orientation_deg": {
+    "roll": 0.0,
+    "pitch_down": 26.70000000100348,
+    "yaw": -5.000000000016245
+  },
+  "ground_plane_z_m": -0.036,
+  "metric_accuracy_verified": false,
+  "reference_only": "Old Astra values are in reference_astra_calibration.json; never use them for current camera",
+  "camera_usb_id": "0c45:64ab",
+  "extrinsics_valid_for_current_camera": true,
+  "extrinsics_source": {
+    "authorization": "User explicitly permits using the current ROS engineering extrinsics, 2026-10-27",
+    "remote_file": "/home/rikibot/codex_projection_20261017/production/src/rescue_bringup/config/vision.yaml",
+    "sha256": "4660416f0140cbc9ddea90ce9a1a43808b108b5a16b7678ef89c3379bc01562c",
+    "raw": {
+      "camera_x": 0.0,
+      "camera_y": 0.0179,
+      "camera_z": 0.129,
+      "camera_roll": 0.0,
+      "camera_pitch": 0.4660029103,
+      "camera_yaw": -0.0872664626,
+      "ground_plane_z": -0.036
+    }
+  },
+  "coordinate_frame": "axle_midpoint_X_forward_Y_left_Z_up"
+}

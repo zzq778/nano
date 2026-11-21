@@ -1,0 +1,119 @@
+{
+  "calibration": "configs/astra_six_estimate.json",
+  "native_green": "build/libvision_green.so",
+  "green_backend": "native",
+  "native_detector": "build/libvision_detector.so",
+  "model": "models/blocks_instance.engine",
+  "model_sha256": "16cd5edbdb74866b707d7db3dff111a527fdac653c5b59ab76d5aa3629e9bf55",
+  "engine_semantic_class_count": 4,
+  "model_channel_to_type": [
+    2,
+    3,
+    1,
+    0
+  ],
+  "semantic_thresholds": [
+    0.5,
+    0.5,
+    0.2,
+    0.35
+  ],
+  "nms_iou": 0.45,
+  "near_line_fraction": 0.5,
+  "preprocess": "raw",
+  "pose_budget_ms": 105,
+  "refine_far": true,
+  "uart_required_types": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "uart_baud": 230400,
+  "result_age_budget_ms": 200,
+  "color_components": {
+    "minimum_area": 120,
+    "minimum_width": 8,
+    "minimum_height": 8,
+    "black_minimum_fill": 0.35,
+    "black_minimum_solidity": 0.75,
+    "black_aspect_range": [
+      0.5,
+      2.0
+    ],
+    "proposal_black_hsv": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        179,
+        100,
+        80
+      ]
+    ],
+    "proposal_blue_hsv": [
+      [
+        100,
+        110,
+        18
+      ],
+      [
+        140,
+        255,
+        255
+      ]
+    ]
+  },
+  "dimensions_m": {
+    "0": [
+      0.04,
+      0.04,
+      0.04
+    ],
+    "2": [
+      0.08,
+      0.04,
+      0.04
+    ],
+    "3": [
+      0.04,
+      0.04,
+      0.04
+    ]
+  },
+  "dimension_source": "handoff dimensions metadata; physical accuracy not independently verified",
+  "geometry_dimension_relative_tolerance": 0.35,
+  "blue_context_supplement": {
+    "lower_hsv": [
+      100,
+      110,
+      18
+    ],
+    "upper_hsv": [
+      140,
+      255,
+      255
+    ],
+    "minimum_area": 120,
+    "minimum_width": 10,
+    "minimum_height": 5,
+    "maximum_aspect": 12,
+    "context_padding_fraction": 0.12
+  },
+  "profile_name": "astra_unified_retain_angles",
+  "native_orange": "build/libvision_orange.so",
+  "orange_backend": "native",
+  "geometry_backend": "native_known_size_rgb",
+  "native_metric": "build/libvision_metric.so",
+  "metric_white_reference": true,
+  "metric_per_object_budget_ms": 0,
+  "far_coarse_center": true,
+  "default_yaw_deg": {
+    "0": 0,
+    "2": 0
+  },
+  "uart_target_scope": "four_blocks_current_delivery_refuges_later",
+  "green_full_color_support": true
+}
