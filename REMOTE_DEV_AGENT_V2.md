@@ -59,7 +59,13 @@ cd ~/nano
 python3 -m pytest -q tests/test_remote_bridge.py tests/test_dev_agent.py
 ```
 
-然后重启现有后台代理，使 v2 代码生效：
+然后重启现有后台代理，使 v2 代码生效。推荐直接运行：
+
+```bash
+bash scripts/upgrade_bridge.sh
+```
+
+或手动操作：
 
 ```bash
 pgrep -f '^python3 -u tools/remote_bridge.py loop$' | xargs -r kill
