@@ -10,8 +10,13 @@ ROOT=Path(__file__).resolve().parents[1]
 class RealZoneContract(unittest.TestCase):
     def test_real_outline_is_not_the_yolo_rectangle(self):
         directory=ROOT/'data/zone_contract'
-        fixture=json.loads((directory/'fixture.json').read_text())
+        fixture_path=directory/'fixture.json'
+        if not fixture_path.is_file():
+            self.skipTest('requires private zone_contract fixtures')
+        fixture=json.loads(fixture_path.read_text())
         path=directory/fixture['image']
+        if not path.is_file():
+            self.skipTest('requires private zone_contract image')
         self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),fixture['file_sha256'])
         image=cv2.imread(str(path))
         geometry=Geometry(json.loads((ROOT/'configs/astra_current.json').read_text()))

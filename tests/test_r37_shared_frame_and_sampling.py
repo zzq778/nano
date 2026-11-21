@@ -25,7 +25,10 @@ from rescuevision.zones import estimate_zone_regions
 
 class SharedFrameContracts(unittest.TestCase):
     def test_reusing_hsv_preserves_block_center_and_apex(self):
-        for path in sorted((ROOT/'data/approved_six/raw').glob('*.png')):
+        paths=sorted((ROOT/'data/approved_six/raw').glob('*.png'))
+        if not paths:
+            self.skipTest('requires private approved_six image fixtures')
+        for path in paths:
             image=cv2.imread(str(path))
             hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
             for cls in (1,3):
@@ -36,8 +39,15 @@ class SharedFrameContracts(unittest.TestCase):
 
     def test_reusing_hsv_preserves_zone_geometry(self):
         geometry=Geometry(json.loads((ROOT/'configs/astra_current.json').read_text()))
-        fixture=json.loads((ROOT/'data/zone_contract/fixture.json').read_text())
-        image=cv2.imread(str(ROOT/'data/zone_contract'/fixture['image']))
+        fixture_path=ROOT/'data/zone_contract/fixture.json'
+        if not fixture_path.is_file():
+            self.skipTest('requires private zone_contract fixtures')
+        fixture=json.loads(fixture_path.read_text())
+        image_path=ROOT/'data/zone_contract'/fixture['image']
+        if not image_path.is_file():
+            self.skipTest('requires private zone_contract image')
+        image=cv2.imread(str(image_path))
+        self.assertIsNotNone(image)
         for color in ('blue','purple'):
             detections=[dict(fixture['detection']),dict(color='purple',bbox=[0.,160.,170.,330.],confidence=.2)]
             expected=estimate_zone_regions(image,copy.deepcopy(detections),geometry,color)
@@ -45,7 +55,11 @@ class SharedFrameContracts(unittest.TestCase):
             self.assertEqual(expected,actual)
 
     def test_green_proposals_same_when_reusing_hsv(self):
-        image=cv2.imread(str(ROOT/'data/approved_six/raw/02.png'))
+        sample=ROOT/'data/approved_six/raw/02.png'
+        if not sample.is_file():
+            self.skipTest('requires private approved_six frame 02.png')
+        image=cv2.imread(str(sample))
+        self.assertIsNotNone(image)
         boxes=[[150.,180.,380.,410.]]
         def kernel(crop):return []
         proposer=GreenFaceProposer(kernel)

@@ -20,7 +20,11 @@ from rescuevision.geometry import Geometry
 class FastPathContracts(unittest.TestCase):
     def test_reused_hsv_preserves_color_supplement_detections(self):
         config = json.loads((ROOT / 'configs/runtime.json').read_text())
-        image = cv2.imread(str(ROOT / 'data/approved_six/raw/01.png'))
+        sample = ROOT / 'data/approved_six/raw/01.png'
+        if not sample.is_file():
+            self.skipTest('requires private approved_six frame 01.png')
+        image = cv2.imread(str(sample))
+        self.assertIsNotNone(image)
         rows = [
             dict(type=0, bbox=[110., 200., 175., 280.], confidence=.9),
             dict(type=2, bbox=[290., 250., 370., 310.], confidence=.9),

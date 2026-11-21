@@ -37,7 +37,12 @@ class ShapeCenterParity(unittest.TestCase):
         image[100:200,200:320]=[0,120,255]
         obj=dict(type=2,bbox=[180,80,340,220])
         edges=dict(status='edge_candidate',back_line=[0.,100.],front_line=[0.,200.])
-        self.assertEqual(top_quad(image,obj,edges),[[319,100],[319,199],[200,199],[200,100]])
+        actual=top_quad(image,obj,edges)
+        expected=[[319,100],[319,199],[200,199],[200,100]]
+        # OpenCV may choose any starting contour vertex across versions.
+        # Preserve all corners and their winding; do not accept reversed order.
+        self.assertIsNotNone(actual)
+        self.assertTrue(any(actual == expected[i:]+expected[:i] for i in range(4)), actual)
         self.assertIsNone(top_quad(image,obj,dict(status='fallback')))
 
 
