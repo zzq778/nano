@@ -120,7 +120,7 @@
   },
   "uart_target_scope": "four_blocks_current_delivery_refuges_later",
   "green_full_color_support": true,
-  "baseline_id": "rgb-unified-20261121-r39-independent-audit",
+  "baseline_id": "rgb-unified-20261121-r41-native-cpu-fit",
   "green_crowd_evidence": true,
   "native_green": "build/libvision_green.so",
   "frontend": "yolo",

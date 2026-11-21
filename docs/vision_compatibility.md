@@ -49,3 +49,16 @@ python3 app.py --camera astra --uart-loopback --warmup 3 --max-frames 240 \
 - `pipeline.py` 的 `top_quad` 增加尾部可选参数 `hsv=None`，既有调用方式仍受支持；只在 HSV 与传入 image 对应同一原始帧时复用。输出角点、安置区法线、橙色 yaw 及全部协议帧不变。
 - `app.py` 新增的三个阶段统计仅增加可选诊断字段；未改变 `--quiet --no-frame-log` 正式模式的图像处理、UART 发送、监控/采样开关与启动命令。
 - 仅 x86 可运行单测和仿真 PTY/固定像素等价性通过；**未**在 Jetson Nano 实测 TensorRT/原生几何性能、真实相机连续启动、真实串口物理 drain 和 STM32 现场解包。r38 可随时以保留的完整目录切回；不需要修改 STM32 固件。
+
+## r40 兼容核验
+
+- 代码变更限蓝/橙补检 ROI 裁剪、安置区轮廓构建和原生 metric 子阶段计时。`configs/runtime.json` 仅调整版本标识 `baseline_id`，不改变类别、阈值、尺寸、近景参数或串口设置。
+- 原 YOLO 六类映射 `[2,3,1,0,4,5]`、己方安置区语义、UART 0/1/15/32 容量、CRC16/CCITT-FALSE、yaw 量化和字段序列完全保留。
+- r39/r40 七张 Astra 像素 × 0/1/15/32 模拟模型框离线流水线中的稳定对象和 UART bytes 完全相等；真实蓝/紫安置区及随机像素轮廓顶点逐元素相等。
+- r39 原有模型权重/引擎和 ARM64 `.so` 字节身份不变；不保证未经本轮实机验证的 Nano FPS、视觉泛化精度或真实 STM32 解析结果。`timings_ms` 仅新增若干诊断字段，老字段/原协议保持兼容。
+
+## r41 原生优化兼容性声明
+
+新增原生 C++ `fitGroundModel` 内部循环优化，不改类映射/位置/角度/输出 JSON 字段/CRC16/CCITT-FALSE/STM32 230400 和 32 目标上限。122 场景比较的状态、位置、yaw、候选数量和相关诊断与 r40 严格一致。`configs/runtime.json` 仅更新版本标识，model、标定和原始 ARM64 动态库完全不动。未经 ARM64 编译，不能冒称已经在 Nano 验证 native ABI、整体吞吐和 UART 接收。
+
+- r41 完整离线七图 × 0/1/15/32 检测框共 28 种输出逐项相等；color 模式应用入口 2 帧 UART PTY 回环无 transport_error，非 TensorRT/STM32 物理链实测。详细记录见 `docs/r41_offline_optimization_report.md`。

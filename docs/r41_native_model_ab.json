@@ -1,0 +1,47 @@
+{
+  "cases": 122,
+  "valid_ground_rays": 122,
+  "statuses": {
+    "1.0": 43,
+    "2.0": 34,
+    "3.0": 45
+  },
+  "baseline": {
+    "p50_ms": 0.6946,
+    "p95_ms": 1.3033
+  },
+  "candidate": {
+    "p50_ms": 0.5657,
+    "p95_ms": 1.0467
+  },
+  "equal_output": true,
+  "environment": "host standalone C++14 -O3, 42 real Astra pixels/fixed synthetic boxes + 80 rendered synthetic cases",
+  "warning": "Raw model fit only; no TensorRT, CUDA, real model detections, or Jetson timing",
+  "p50_saved_pct": 18.56,
+  "fit_status_group": {
+    "accepted": {
+      "cases": 77,
+      "baseline": {
+        "p50_ms": 0.9114,
+        "p95_ms": 1.388
+      },
+      "candidate": {
+        "p50_ms": 0.687,
+        "p95_ms": 1.0967
+      },
+      "matched_case_median_speedup_pct": 21.68
+    },
+    "rejected": {
+      "cases": 45,
+      "baseline": {
+        "p50_ms": 0.4804,
+        "p95_ms": 0.9846
+      },
+      "candidate": {
+        "p50_ms": 0.4196,
+        "p95_ms": 0.8628
+      },
+      "matched_case_median_speedup_pct": 8.21
+    }
+  }
+}

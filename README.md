@@ -1,3 +1,21 @@
+## r41 Native RGB model-fit CPU optimization (source-only, 2026-11-21)
+
+r41 keeps the r40 image-processing and UART behavior and reduces repeated indexing and polygon point-inclusion work in the production C++ known-size fitter (`vendor_model/src/model_geometry.cpp`). On a host, 122 unchanged RGB fitting cases ran 18.56% faster by pooled P50, with exact result parity; the full report is `docs/r41_offline_optimization_report.md`.
+
+**Important:** the bundled `build/libvision_metric.so` is the unchanged original ARM64 binary; this release does not activate native performance improvements on Nano until rebuilt and verified there. No production deployment or public GitHub push was performed.
+
+---
+
+## r40 CPU hot-path optimization (2026-11-21)
+
+This revision retains the r39 vision baseline and native model, and reduces CPU work in the orange/blue color supplements and placement-zone hull extraction. It also adds native metric substage timers. See `docs/vision_performance_report.md` for reproducible r39/r40 comparisons. No Jetson runtime FPS claim is made. The local A/B command is:
+
+```bash
+python3 tools/bench_r40_hotpaths.py --baseline-root /path/to/r39/jetson_vision --iterations 50
+```
+
+---
+
 # 独立 Astra 视觉工程 r39（六类视觉与两子区通信合同）
 
 唯一入口为app.py，生产配置configs/runtime.json，开机单元jetson-vision.service。实际源码身份以BASELINE.json和source_identity.json为准；旧版本说明已归档，不作当前规则。
@@ -89,7 +107,3 @@ g++ -std=c++14 -O3 -Iinclude src/detection_postprocessor.cpp tests/nms_equivalen
 ```
 
 正式服务命令及串口格式不变。请勿直接把 PC 的合成检测框成绩代入 Jetson Nano 的实际 FPS；本机不涉及系统刷机、模型更换和对 STM32 的写入。
-
-## GitHub 源码分发与手机开发
-
-本次发布为去除模型权重、现场图像和 ARM64 编译产物的源码快照；不能直接替代含模型的部署目录。手机 SSH、ARM64 CPU-only 编译和 Nano 原生 TensorRT 构建步骤详见 `MOBILE_ARM64_SSH.md`；仓库导入与资产保护说明见 `GITHUB_PUBLISH.md`。

@@ -1,3 +1,13 @@
+# r41 Source optimization baseline — native RGB fitting
+
+Based on an independent full copy of r40. Only native C++ RGB fitting and host test/benchmark tools were changed; configuration changed only `baseline_id`. The existing ARM64 native libraries and model weights are byte-identical to r40. Evidence: `docs/r41_native_model_ab.json` and `docs/r41_offline_optimization_report.md`. No Jetson runtime result claimed.
+
+---
+
+# r40 Local CPU hot-path baseline
+
+Source: independently preserved r39 complete deployment archive. Changes: exact blue/orange occupied-ROI CCL, exact contour-boundary zone hulls, and separately measured native metric stages. Six-class model and binary/STM32 protocol unchanged. Local benchmark results in `docs/r40_hotpaths_ab.json`; Jetson end-to-end throughput not measured this round.
+
 # 当前工程基线：r39（2026-11-21）
 
 当前基线标识：`rgb-unified-20261121-r39-independent-audit`。

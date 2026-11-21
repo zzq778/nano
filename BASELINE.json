@@ -1,11 +1,11 @@
 {
-  "baseline_id": "rgb-unified-20261121-r39-independent-audit",
+  "baseline_id": "rgb-unified-20261121-r41-native-cpu-fit",
   "entrypoint": "app.py",
   "configuration": "configs/runtime.json",
-  "baseline_config_sha256": "84bb0cb6d0bb24e4dcb116a45e0507c16100e5908d8033bc8e6c6b110881a2c3",
-  "implementation_sha256": "580fce8f9d5596f84ce0cc3fc6bb7823fe5077afe08a8d4f37f1f69d857758a6",
+  "baseline_config_sha256": "25c6a2fa27898073ddd9e4824e1c1295824b582dd67197a377658aef889b3e28",
+  "implementation_sha256": "113117d9176d0cdb4adc1303ffbe56bcef6d918c97fae060a4db8ec15ef343fc",
   "implementation_files": {
-    "app.py": "fdca8ffeff7a7ee09533db3c0a0a70a68b0db98867a4228e204f5f47f28622ad",
+    "app.py": "606713ea86c44c568e0943ad6ac300f9351d66f2e995dc0440c487b2e879cbda",
     "include/rescue_vision/detection_postprocessor.hpp": "cca1664a33c0407ee2cab9591cb9e9a2fc6c6f0c1fa1e3a52d88dd4d1dc49890",
     "include/rescue_vision/tensorrt_engine.hpp": "8081c91f4de6369cc6959a604e9573673f8912a2e61dd42adca263e94af39968",
     "include/rescue_vision/topface.hpp": "e7d4b49b678ec371d7bdf06aed319a1a5b4cf7fefc943e1717c80daa02c3c288",
@@ -15,7 +15,7 @@
     "python/rescuevision/baseline.py": "ed88b567d6b563cba0d3e1bea186cf68056887fec0af0c694ec421a444809bae",
     "python/rescuevision/continuous_uart.py": "c1753622396dad97c6182f1e9b5812f89b1b7c07d1eb529bbae9cc73fb5a4c6b",
     "python/rescuevision/drawing.py": "7bee5c9685421af335420248ec6569980e762abfd2e8b6bdb2248a1a8e584f9b",
-    "python/rescuevision/frontends.py": "25d2b669a342a8cfa44ba8ed3fea82f80b89b4d4a1e3edec92594a5c86ff90ef",
+    "python/rescuevision/frontends.py": "4cf6614dfc83f3e490157939e124d42a8d7b9e93462c5b922c02435d2bb3f31c",
     "python/rescuevision/geometry.py": "7f5bfcaa0d3ea79f75c1b6824e774af8cc2fae37b54307ae6dd9004d2323fa2b",
     "python/rescuevision/green_association.py": "baa3e43fb41a4bd5609278bc6b5a90b9b0ba97c739df4f93b68826db3c94753e",
     "python/rescuevision/green_detection.py": "cf4826616b585f805aff6a6510ff2b0b5667b142fe23471b61ad6df006bf214b",
@@ -25,7 +25,7 @@
     "python/rescuevision/native.py": "796434001bd645c9ea1696a1e23f529f992a62e494305ef3d265eff6fae1e3a6",
     "python/rescuevision/orientation.py": "359bfd5a13079070c5becca47e5cdaf32b4521948f75c1e1f3eb3a6e98f6fe6b",
     "python/rescuevision/packet_snapshot.py": "e6397bf65d304285d95b5086bba29eb49022353763d4c16f55548aea977a2c90",
-    "python/rescuevision/pipeline.py": "52922a077e08fadb40b7b9dfa072da701acb190c9c602bd430492e2d59db2e6b",
+    "python/rescuevision/pipeline.py": "ffdd575ae14c6a27a50c79c4fcd9cefe8c3335acbc6a58a0ce711361ed734ee7",
     "python/rescuevision/pose_preview.py": "2ad64c14d1018763dc5d39df2d4bca9c68060a1e339892e8d4ba4ea836ff34f3",
     "python/rescuevision/ros_image.py": "a951bebf8d758d13068862368e8a822727f1c25bff7a6dd245a6df66a920a6c2",
     "python/rescuevision/runtime.py": "61e17304373d42ed6a1bfaba168c52399d6718ec82ef5f9f179e93b7e7eab14f",
@@ -34,7 +34,7 @@
     "python/rescuevision/shape_center.py": "2bb2796f4b7365a52aa4ccdaade0e011dc3ebf283fc347c910aaa08640660d8f",
     "python/rescuevision/topface_native.py": "99d3213d15661d1cbfbb26e86eec59f6f7fac141f5b4b32e4529b565866b0397",
     "python/rescuevision/uart.py": "9100a230ee6ae054c8ab7a7b7c1738c63ba125ada0a0151f7643c677ee5bfe03",
-    "python/rescuevision/zones.py": "f8bfd3ef3cb0aff46ace88b41d0ddff24d64da5bff108b46b9caa8d78aceeda1",
+    "python/rescuevision/zones.py": "97b85839ea9b5e05cf26545c41beb3df45e68b4997f17730313426e13b61382a",
     "src/astra_camera.cpp": "61e14c1bb63b8e1fbde38ac0f48bf9248b35ad958d7d6c0e655ba6811353670d",
     "src/detection_postprocessor.cpp": "bb8acb1e5d8ca429ed13875f5fd8078d737eda7610d04f544bddd7e868fbb8ed",
     "src/detector_bridge.cpp": "9a77cad88773cd73975eb5ef73acd17daa8148bde9c197a5ae0b9ded042581c2",
@@ -60,6 +60,6 @@
     "vendor_model/include/rescue_vision/model_geometry.hpp": "ca0a16b231af3cd59f5054cc477ed5c78d857aaf60fc4aa59be8e3e0066ce064",
     "vendor_model/include/rescue_vision/rgb_frame_view.hpp": "f890f57570136b4418af0ce9704260222da24fb1ceb7a80998ce736bbbd83a19",
     "vendor_model/src/ground_geometry.cpp": "4ec85d01e327d23721d6196ac4c19407c23bf592a2dca3d6c8eb4ebf8f9f4c14",
-    "vendor_model/src/model_geometry.cpp": "de74ef99b87f4b2e081d7c3bc9fff809a48ce81dd840a8f544ec57eb94c8f430"
+    "vendor_model/src/model_geometry.cpp": "88fbf05f660d45bf54924934a3709d0c81b44e5a1a0b45306c4ace2d59001918"
   }
 }

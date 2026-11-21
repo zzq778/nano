@@ -95,13 +95,18 @@ def orange_visible_proposals(image,objects,hsv=None):
         invalid=(bgr[:,2]<bgr[:,1]*1.38)|(bgr[:,2]<bgr[:,0]*1.55)
         mask[xy[invalid,1],xy[invalid,0]]=0
     mask=cv2.morphologyEx(mask,cv2.MORPH_OPEN,np.ones((3,3),np.uint8))
-    n,labels,stats,centers=cv2.connectedComponentsWithStats(mask,8)
+    # Label only the occupied rectangle.  Cropping away zero-valued border
+    # pixels cannot change 8-connected components, their areas or centroids.
+    ox,oy,bw,bh=cv2.boundingRect(mask)
+    if bw==0:return []
+    n,labels,stats,centers=cv2.connectedComponentsWithStats(mask[oy:oy+bh,ox:ox+bw],8)
     out=[]
     for i in range(1,n):
-        x,y,w,h,area=map(int,stats[i])
+        x,y,w,h,area=map(int,stats[i]);x+=ox;y+=oy
         if area<700 or w<18 or h<12 or area/float(w*h)<.55:continue
         if max(w/float(h),h/float(w))>7:continue
-        cx,cy=centers[i]
+        cx=(round(float(centers[i,0])*area)+ox*area)/area
+        cy=(round(float(centers[i,1])*area)+oy*area)/area
         if any(o['type']==2 and o['bbox'][0]-5<=cx<=o['bbox'][2]+5 and o['bbox'][1]-5<=cy<=o['bbox'][3]+5 for o in objects):continue
         out.append(dict(type=2,bbox=[x,y,x+w,y+h],center_px=[float(cx),float(cy)],confidence=None,
                         source='orange_visible_color_recovery',center_kind='visible_fragment_centroid_not_full_object_center',visible_only=True))
@@ -157,9 +162,14 @@ def _blue_context_region(image,objects,cfg,ox,oy,xmax,ymax,check_border,hsv=None
     region_hsv=hsv[oy:ymax,ox:xmax] if hsv is not None else cv2.cvtColor(crop,cv2.COLOR_BGR2HSV)
     mask=cv2.inRange(region_hsv,tuple(cfg['lower_hsv']),tuple(cfg['upper_hsv']))
     mask=cv2.morphologyEx(mask,cv2.MORPH_OPEN,np.ones((3,3),np.uint8))
-    n,labels,stats,centers=cv2.connectedComponentsWithStats(mask,8);proposals=[];touches=False
+    # Keep border checks relative to the original context crop, not the
+    # occupied rectangle.  Only the zero-valued margin is excluded from CCL.
+    bx,by,bw0,bh0=cv2.boundingRect(mask)
+    if bw0==0:return []
+    n,labels,stats,centers=cv2.connectedComponentsWithStats(mask[by:by+bh0,bx:bx+bw0],8)
+    proposals=[];touches=False
     for i in range(1,n):
-        x,y,bw,bh,area=map(int,stats[i])
+        x,y,bw,bh,area=map(int,stats[i]);x+=bx;y+=by
         # Clip detection runs before the context test: clipping shrinks the component,
         # which can make it lose the very overlap that would have kept it, so a
         # context check first would silently drop a real fragment. The size gate keeps
@@ -175,8 +185,11 @@ def _blue_context_region(image,objects,cfg,ox,oy,xmax,ymax,check_border,hsv=None
         if not context:continue
         if area<cfg['minimum_area'] or bw<cfg['minimum_width'] or bh<cfg['minimum_height']:continue
         if max(bw/float(bh),bh/float(bw))>cfg['maximum_aspect']:continue
-        center=centers[i].tolist()
-        proposals.append(dict(type=3,bbox=[x+ox,y+oy,x+bw+ox,y+bh+oy],center_px=[center[0]+ox,center[1]+oy],source='positive_blue_color_with_object_context',confidence=None,
+        # Recover the global integer pixel sums before dividing, so even the
+        # last centroid bit agrees with full-frame OpenCV labeling.
+        cx=(round(float(centers[i,0])*area)+(bx+ox)*area)/area
+        cy=(round(float(centers[i,1])*area)+(by+oy)*area)/area
+        proposals.append(dict(type=3,bbox=[x+ox,y+oy,x+bw+ox,y+bh+oy],center_px=[cx,cy],source='positive_blue_color_with_object_context',confidence=None,
                               center_kind='visible_fragment_centroid_not_full_object_center',visible_only=True,context_indices=context,mask_area_px=area))
     if touches:return None
     return proposals

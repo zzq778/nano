@@ -104,3 +104,16 @@ python3 app.py --camera astra --uart-loopback --max-frames 240 \
 ## r39 独立二次审查结果（2026-11-21）
 
 重读 `app.py` 至 `runtime.SerialSink.write` 的真实路径，并检查上版测试是否误把 Python 回退算作生产 native metric 收益。r39 的新可测热点为 `Geometry.set_position` 针孔条件下每目标 `cv2.projectPoints` 诊断投影：以同样的 K 内参代数公式替代，500 坐标和 28 组输入输出对照通过，UART 帧完全一致。x86 200 次投影构造 P50 14.297→0.890ms；七张 Astra 图加固定 15/32 模拟检测框，50 次交错回放 P50 分别 39.560→37.724ms、75.026→73.917ms；**不含 TensorRT 或 native metric，也不代表 Nano FPS**。0/1 框部分轮次反而变慢，不宣称统一的整机或尾延迟改善。监控、逐帧 JSON、抽样提交的 CPU 代价现在可以在 `run_summary.json` 单独观察，关闭时返回 null。具体复现实验与未测试设备项见 docs 下四份 r39 追加记录。
+
+## r40 local CPU optimization (2026-11-21)
+
+- Full optimization evidence: `docs/vision_performance_report.md` and `docs/r40_hotpaths_ab.json`.
+- Orange/blue 8-connectivity uses occupied ROI only, with exact global centroid reconstruction.
+- Placement-zone convex hull uses external boundaries rather than all foreground pixels; verified against full-pixel oracle.
+- Native metric CPU stages now expose independent timers for prepare / orange fit / green-blue cube fit.
+- Zero changes to UART protocol, native ARM64 binaries, YOLO engine, configuration thresholds or robot semantics.
+- This is a local x86 CPU comparison, not a Nano end-to-end FPS claim.
+
+## r41 本机原生模型几何内核优化
+
+真正改动 `vendor_model/src/model_geometry.cpp` 的生产原生 `fitGroundModel`：合并边缘采样遮挡/距离索引、预先排除 overlap 无关背景点。r40/r41 C++14/O3 122 场景、30 轮交错：P50 0.6946→0.5657ms（-18.56%），P95 1.3033→1.0467ms；结果完全相等。详情 `docs/r41_offline_optimization_report.md`。旧 ARM64 `.so` 未重新编译，此成绩不代表 Nano FPS。

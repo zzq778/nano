@@ -35,3 +35,18 @@
 **独立发现的生产 CPU 热点：** `Geometry.set_position` 在针孔模式下每次位置有效时都调用 `cv2.projectPoints`，只为生成地面中心的诊断像素字段。该标定的针孔模型允许用同样内参的直接透视公式替代。新路径保留输入世界坐标、毫米量化、输出键和畸变相机分支；500 随机点对照 `≤1e-10 px`。代表性 x86 200 次函数批处理由 14.297ms 降至 0.890ms P50。该局部测试不能等价为 Nano FPS。
 
 **复核范围限制：** 当前机器没有 ARM64 Jetson/Astra/STM32 物理串口和 TensorRT/SDK 开发链；`build/*.so` 仍是上一版原始 ARM64 文件且没有重新编译。可检验项目是 Python、纯 C++ NMS、PTS/PTY 模拟串口、固定真实 Astra 像素与模拟检测框。GPU 同步、原生 metric 的实机阶段耗时与物理 UART 排空未测。保留旧服务/模型及编译链，不因 CPU 模拟跑分改变模型精度或采集结构。
+
+## r40 本地优化基线（2026-11-21）
+
+- 基线：`jetson_vision_r39_mobile_full.tar.gz`，保留独立原件；未更改旧版 ARM64 `build/*.so`、TensorRT engine、标定数据及 UART。
+- 本地环境：Linux x86_64、Python 3.13.5、OpenCV 4.13.0、OpenCV 单线程；Astra 七张 640×480 原始图；YOLO 为固定模拟框，未运行真实 TensorRT/Jetson 摄像头。
+- 真正运行链未变：Astra 最新帧 → YOLO 六类 → 蓝/橙颜色补检 → 近景中心/姿态 → 已知尺寸原生几何 → 己方安置区 → UART CRC16/CCITT-FALSE。
+- 本轮仅优化 `frontends.py` 蓝/橙补检连通域的像素占据边界，`zones.py` 安置区轮廓凸包，并增补原生 metric 子阶段耗时记录；需要 Nano 原生库才能测该阶段实测值。
+- 见 `docs/r40_hotpaths_ab.json`、`docs/r40_full_pipeline_ab.json`、`docs/vision_test_progress.md`；所有数据均为本机 CPU，不是 Jetson FPS。
+
+## r41 原生 C++ RGB model fit 本机基线（2026-11-21）
+
+- 在 r40 完整独立副本中开发，生产路径仍以 `app.py`→`NativeMetric`→`metric_fit_json`→`fitGroundModel` 为准；主模型、类别映射、标定、UART、近景策略及旧 ARM64 二进制未变。
+- 由于 x86 没有 TensorRT/CUDA/OpenCV C++ 开发库，仅以独立 `g++` 编译实际生产模型拟合 `vendor_model/src/model_geometry.cpp`（纯 C++14），与同条件 r40 建立输入输出 A/B。
+- 122 场景 / 30 次交错；原生处理 P50 0.6946→0.5657ms，成功拟合 77 场景，准确输出严格一致。`docs/r41_native_model_ab.json`。
+- 性能必须与正式 Nano `metric_prepare`、`metric_cube`、TensorRT 和传输耗时分开。优化在本轮**未在 ARM64 动态库中激活**。

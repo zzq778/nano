@@ -85,6 +85,7 @@ def main():
                  'hsv_and_blue','orange_recovery','green_classic',
                  'green_native_rims','green_association_and_support',
                  'native_preprocess','native_tensorrt_and_transfers','native_postprocess',
+                 'native_metric_prepare','native_metric_orange_fit','native_metric_cube_fit',
                  'monitor_submit','frame_json_log','sample_submit')
     stages={name:deque(maxlen=1024) for name in stage_names}
     camera_skipped_total=0
@@ -246,7 +247,8 @@ def main():
                         latencies['app_serial_write'].append(result['transport']['write_ms'])
                     latencies['frame_to_write'].append(result['frame_to_app_write_ms'])
                 for name in ('detection','center_only','scheduled_refinement_and_veto',
-                             'metric_validation','uart_encode'):
+                             'metric_validation','uart_encode','native_metric_prepare','native_metric_orange_fit',
+                             'native_metric_cube_fit'):
                     if name in result['timings_ms']:stages[name].append(result['timings_ms'][name])
                 diagnostics=result.get('frontend_diagnostics',{})
                 yolo=diagnostics.get('yolo_diagnostics',diagnostics)

@@ -14,6 +14,21 @@ def plausible_platform_sides(sides):
             .66*ZONE_MIN_SIZE_SCALE <= long <= .66*ZONE_MAX_SIZE_SCALE and
             1.2 <= long/short <= 3.5)
 
+def _color_hull(mask):
+    """Pixel-exact convex hull using contour boundaries, not every mask pixel.
+
+    Hull vertices do not depend on interior pixels.  OpenCV's full-pixel hull
+    starts at the rightmost, then lowest coordinate; retain that ordering for
+    existing diagnostics and downstream consumers.
+    """
+    contours=cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)[-2]
+    if not contours:return None
+    boundary=np.concatenate(contours)
+    hull=cv2.convexHull(boundary).reshape(-1,2)
+    start=int(np.lexsort((hull[:,1],hull[:,0]))[-1])
+    return np.roll(hull,-start,axis=0) if start else hull
+
+
 def estimate_zone_regions(image,detections,geometry,selected_color,hsv=None):
     if selected_color not in ('purple','blue'):raise ValueError('placement_zone_color must be purple or blue')
     height,width=image.shape[:2];results=[]
@@ -54,14 +69,12 @@ def estimate_zone_regions(image,detections,geometry,selected_color,hsv=None):
                 if accepted:cv2.drawContours(component,accepted,-1,255,-1)
             else:cv2.drawContours(component,[max(contours,key=cv2.contourArea)],-1,255,-1)
         mask=cv2.bitwise_and(mask,component)
-        pixels=cv2.findNonZero(mask)
-        if pixels is None or len(pixels)<100:
+        if cv2.countNonZero(mask)<100:
             if detection['color']!='purple':result['reason']='floor_color_evidence_missing';continue
             polygon=np.array([[a,b],[c,b],[c,d],[a,d]],dtype=float)
             result['outline_evidence']='purple_yolo_outer_bbox_fallback'
         else:
-            hull=cv2.convexHull(pixels)
-            polygon=hull.reshape(-1,2)+np.array([x0,y0])
+            polygon=_color_hull(mask)+np.array([x0,y0])
             result['outline_evidence']='visible_platform_color_hull' if detection['color']=='purple' else 'visible_floor_color_hull'
         # A complete red inner floor is a more stable center cue than the raised
         # 20 mm perimeter.  Keep the perimeter for yaw: the floor may be
@@ -75,9 +88,8 @@ def estimate_zone_regions(image,detections,geometry,selected_color,hsv=None):
             if floor_components:
                 floor[:]=0
                 cv2.drawContours(floor,floor_components,-1,255,-1)
-                floor_pixels=cv2.findNonZero(floor)
-                if floor_pixels is not None and len(floor_pixels)>=100:
-                    floor_hull=cv2.convexHull(floor_pixels).reshape(-1,2)+np.array([x0,y0])
+                if cv2.countNonZero(floor)>=100:
+                    floor_hull=_color_hull(floor)+np.array([x0,y0])
                     floor_points=geometry.project_many(floor_hull,image.shape[:2],geometry.ground)
                     if floor_points is not None:
                         floor_rect=cv2.minAreaRect(np.ascontiguousarray(np.asarray(floor_points,np.float32)[:,:2]))

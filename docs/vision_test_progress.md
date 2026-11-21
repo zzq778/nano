@@ -68,3 +68,26 @@
 - 原模型、五个 ARM64 `.so` 以及提供的图片素材：共 18 个文件与 r38 逐字节一致。
 - 独立 `g++ -std=c++14 -O3` 编译后复测 NMS：50/50 同输出；属于 r37 已有优化，不计作 r39 的新增性能。
 - 尚未执行的设备验证：Nano TensorRT/Astra、生产 native metric、完整物理 UART 链与 STM32 实际解包。
+
+## r40：本机真实像素 ROI 热点优化与基准
+
+1. 原始 r39 完整工程独立解压，原生模型及旧库只读保存。本机 r39 单测基线：124 passed、7 skipped、45 subtests passed。
+2. `frontends.orange_visible_proposals`：HSV、颜色阈值及面积/长宽过滤不变，形态学之后利用 `cv2.boundingRect` 缩小 8 连通域标号范围。通过全局像素整数矩恢复中心坐标，确保完整检测字典逐项一致；密集橙色覆盖全画面时不宣称加速。
+3. `frontends._blue_context_region`：同样只排除零像素外边界；内部裁剪是否触边仍依据原始上下文 ROI，而不是新的最小包围框。原候选 bbox、context_indices、中心和顺序均保持一致。全帧候选/单候选、随机颜色覆盖和边缘切割做了 A/B。
+4. `zones._color_hull`：使用所有外部轮廓边界点求凸包，代替扫描所有掩模像素。对凸包起点按 `x` 最大、`y` 最大旋转，与原 `cv2.convexHull(cv2.findNonZero(mask))` 的输出顺序一致；真实蓝区、合成蓝/紫区、碎片/孔洞、随机 160 个掩模逐元素相等。
+5. 新增 `native_metric_prepare`、`native_metric_orange_fit`、`native_metric_cube_fit` 耗时分段，加入主应用最近 1024 帧统计；以模拟原生函数调用验证 prepare 一次、橙块 fit 一次、绿/蓝 cube 两次，不改变实际调用次数。未连接原生库时不伪造实机计时。
+6. 完整离线流水线 A/B：七张真实 Astra 像素图 × 0/1/15/32 固定模拟检测数量；`tools/bench_r38_pipeline.py` 同输入逐项对比字典（排除时间字段），UART 逐字节相等。50 次交错 P50/P95 见 `docs/r40_hotpaths_ab.json`。
+7. 未采用的改动：未删除所谓重复立方体拟合——静态追踪证明 `pose_order` 只为橙块排序，绿/蓝走另一条 cube 路径，并非同目标重复。没有在无 TensorRT 的 x86 上重写 CUDA/GPU 内核或改采集/任务门槛。
+
+最终自动化测试与交付包校验记录见 r40 审查报告。以上均非 Nano 实测有效输出 FPS。
+
+## r41：生产原生 C++ 离线复审与优化
+
+1. 重新剖析 0/15/32 固定框离线 CPU：Python `cube_bbox_center` 在无 native solver 的压力模式下主导耗时；该模块是参考/实验回退，**不能把 15 框 CPU 减少时间直接当作正式 Nano 的瓶颈**。放弃只针对 Python 回退刷分的尝试。
+2. 在纯 `vendor_model/src/model_geometry.cpp` 中合并遮挡和边界距离共同像素取整/索引；在重叠率计算时按候选凸包外接框跳过不可能在凸包内的背景点，保留所有采样门限与接受流程。
+3. 从源代码编译 r40/r41 两版原生模型，实现无 TensorRT/Jetson 的 C++14 测试运行器，使用 42 真实 Astra 像素但模拟检测框 + 80 合成模型/遮挡/噪声场景；严格比较拟合输出。
+4. 122 场景、30 轮交错，P50 0.6946→0.5657ms，P95 1.3033→1.0467ms，77 场景拟合有效且状态/位置/yaw/cost/诊断一致。
+5. 在 80 合成场景运行 ASan+UBSan 通过；独立原生 C++ 编译和 Python 3.6 语法检查通过；原始 ARM64 二进制未触碰。
+6. 完整测试 127 passed / 7 skipped / 45 subtests，详情 `docs/r41_offline_optimization_report.md`。后续 Nano 构建/真实 FPS 不在本机伪造。
+
+- r41 完整离线七图 × 0/1/15/32 检测框共 28 种输出逐项相等；color 模式应用入口 2 帧 UART PTY 回环无 transport_error，非 TensorRT/STM32 物理链实测。详细记录见 `docs/r41_offline_optimization_report.md`。

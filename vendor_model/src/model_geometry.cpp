@@ -149,12 +149,22 @@ struct Evidence {
     const int v = static_cast<int>(std::lround((y - y0) / step));
     return u >= 0 && u < w && v >= 0 && v < h && hidden[v * w + u];
   }
-  float at(float x, float y) const {
-    if (x < x0 || y < y0 || x > x0 + (w - 1) * step || y > y0 + (h - 1) * step) return 20.F;
+  // Edge evaluation used to round and index the same sample twice: once
+  // for occlusion and again for distance. Keep the old bounds semantics (a
+  // coordinate just outside the ROI can round into its border label), but
+  // share the computed integer index for the common visible-pixel path.
+  float visibleEdgeDistance(float x, float y, bool* occluded) const {
     const int u = static_cast<int>(std::lround((x - x0) / step));
     const int v = static_cast<int>(std::lround((y - y0) / step));
-    if (u < 0 || u >= w || v < 0 || v >= h) return 20.F;
-    return std::min(20.F, distance[v * w + u] * step);
+    if (u < 0 || u >= w || v < 0 || v >= h) {
+      *occluded = false;
+      return 20.F;
+    }
+    const int index = v * w + u;
+    *occluded = hidden[index] != 0;
+    if (*occluded) return 0.F;  // The caller discards this sample.
+    if (x < x0 || y < y0 || x > x0 + (w - 1) * step || y > y0 + (h - 1) * step) return 20.F;
+    return std::min(20.F, distance[index] * step);
   }
 };
 Evidence evidence(const Detection2D& d, const RgbFrameView& rgb, const ModelFitOptions& options,
@@ -414,8 +424,10 @@ struct Fitter {
           const float x = u.x + (v.x - u.x) * t, y = u.y + (v.y - u.y) * t;
           if (x < 1 || x > k.width - 2 || y < 1 || y > k.height - 2) continue;
           ++samples;
-          if (e.isHidden(x, y)) continue;
-          c.edge_error += e.at(x, y);
+          bool occluded = false;
+          const float edge_distance = e.visibleEdgeDistance(x, y, &occluded);
+          if (occluded) continue;
+          c.edge_error += edge_distance;
           ++visible;
         }
       }
@@ -466,16 +478,31 @@ struct Fitter {
     return c;
   }
   float overlap(const Candidate& c) const {
-    auto h = project(c);
+    const auto h = project(c);
+    // Most pixels in the object ROI cannot lie inside the model polygon.
+    // Cheap axis-aligned containment avoids a full edge-crossing loop there;
+    // inside() is unchanged for all pixels that might actually be inside.
+    float min_x = std::numeric_limits<float>::infinity();
+    float min_y = std::numeric_limits<float>::infinity();
+    float max_x = -min_x, max_y = -min_y;
+    for (const auto& p : h) {
+      min_x = std::min(min_x, p.x); max_x = std::max(max_x, p.x);
+      min_y = std::min(min_y, p.y); max_y = std::max(max_y, p.y);
+    }
     unsigned both = 0, either = 0;
-    for (int v = 0; v < e.h; ++v)
+    for (int v = 0; v < e.h; ++v) {
+      const float y = float(e.y0 + v * e.step);
+      const bool possible_y = y >= min_y && y <= max_y;
       for (int u = 0; u < e.w; ++u) {
-        if (e.hidden[v * e.w + u]) continue;
-        const bool a = e.mask[v * e.w + u],
-                   b = inside({float(e.x0 + u * e.step), float(e.y0 + v * e.step)}, h);
+        const int index = v * e.w + u;
+        if (e.hidden[index]) continue;
+        const bool a = e.mask[index];
+        const float x = float(e.x0 + u * e.step);
+        const bool b = possible_y && x >= min_x && x <= max_x && inside({x, y}, h);
         both += a && b;
         either += a || b;
       }
+    }
     return either ? float(both) / either : 0;
   }
 };

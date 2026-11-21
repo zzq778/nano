@@ -103,6 +103,7 @@ class Pipeline:
                     evidence=black_apex_evidence(image,o,hsv)
                     if evidence:o.update(evidence)
         centered=time.perf_counter();order=pose_order(objects);tasks=[];context=None;metric_context=None;work=image
+        metric_times=dict(native_metric_prepare=0.,native_metric_orange_fit=0.,native_metric_cube_fit=0.)
         if self.green and self.config['preprocess']=='gaussian3':work=cv2.GaussianBlur(image,(3,3),.8)
         try:
             for index in order:
@@ -117,12 +118,17 @@ class Pipeline:
                 if not obj['near'] and (not self.config['refine_far'] or (budget is not None and (begin-start)*1000>=budget)):
                     obj['refinement']['reason']='far_coarse_budget_policy';tasks.append(dict(index=index,color=obj['color'],near=False,skipped=True,ms=0));continue
                 if self.metric_solver:
-                    if metric_context is None:metric_context=self.metric_solver.prepare(image,objects,self.config.get('metric_white_reference',True))
+                    if metric_context is None:
+                        stage_start=time.perf_counter()
+                        metric_context=self.metric_solver.prepare(image,objects,self.config.get('metric_white_reference',True))
+                        metric_times['native_metric_prepare']+=(time.perf_counter()-stage_start)*1000
                     task_budget=self.config.get('metric_per_object_budget_ms',0)
                     if not obj['near'] and budget is not None:
                         remaining=max(.1,budget-(time.perf_counter()-start)*1000)
                         task_budget=min(task_budget,remaining) if task_budget>0 else remaining
+                    stage_start=time.perf_counter()
                     fit=self.metric_solver.fit(metric_context,index,task_budget)
+                    metric_times['native_metric_orange_fit']+=(time.perf_counter()-stage_start)*1000
                     obj['metric']=self.geometry.from_model(obj,fit)
                     obj['refinement'].update(status='model_estimate' if fit['status'] in (1,2) else 'model_rejected',reason=obj['metric']['reason'])
                 elif obj['type']==2:obj['refinement']=self._orange(work,obj)
@@ -142,10 +148,14 @@ class Pipeline:
                           and obj.get('geometry_body_supported') is not False]
             if self.metric_solver and cube_indices:
                 if metric_context is None:
+                    stage_start=time.perf_counter()
                     metric_context=self.metric_solver.prepare(image,objects,self.config.get('metric_white_reference',True))
+                    metric_times['native_metric_prepare']+=(time.perf_counter()-stage_start)*1000
                 for index in cube_indices:
                     obj=objects[index]
+                    stage_start=time.perf_counter()
                     obj['native_cube_fit']=self.metric_solver.cube(metric_context,index)
+                    metric_times['native_metric_cube_fit']+=(time.perf_counter()-stage_start)*1000
                     obj['refinement'].update(status='center_only',reason='known_cube_center_without_orientation')
         finally:
             if self.green and context is not None:self.green.release(context)
@@ -199,11 +209,15 @@ class Pipeline:
         else:
             try:preview=uart.encode(targets).hex() if len(targets)<=uart.MAX_TARGETS else None
             except ValueError:preview=None
+        timings=dict(detection=(detected-start)*1000,center_only=(centered-detected)*1000,
+                     scheduled_refinement_and_veto=(refined-centered)*1000,
+                     metric_validation=(projected-refined)*1000,uart_encode=(encoded-projected)*1000,
+                     compute=(encoded-start)*1000)
+        if self.metric_solver:timings.update(metric_times)
         return dict(mode=self.mode,image_size=[image.shape[1],image.shape[0]],objects=objects,placement_zones=zones,
                     frontend_diagnostics=getattr(self.frontend,'last_diagnostics',{}),
                     counts={name:sum(o['color']==name for o in objects) for name in NAMES},pose_task_order=tasks,
                     class_coverage=self.frontend.coverage,calibration_status=self.geometry.reason,metric_calculation_enabled=bool(self.metric_solver or (self.geometry.ready and self.green)),measurement_context='assumed_camera_stress_only' if self.geometry.config.get('simulation_only') else 'input_bound_calibration',uart_hex=packet.hex(),diagnostics=reasons,uart_target_count=len(wire_targets),unlocated_object_count=sum(not o['position_valid'] for o in objects),
                     theoretical_wire_ms=len(packet)*10*1000./self.config['uart_baud'],
                     estimate_packet_preview=dict(hex=preview,count=len(targets),partial=len(targets)!=len(objects),transmitted=False,wire_yaw_zero=all(t.get('yaw_cdeg',0)==0 for t in targets)),
-                    timings_ms=dict(detection=(detected-start)*1000,center_only=(centered-detected)*1000,scheduled_refinement_and_veto=(refined-centered)*1000,
-                                    metric_validation=(projected-refined)*1000,uart_encode=(encoded-projected)*1000,compute=(encoded-start)*1000))
+                    timings_ms=timings)
