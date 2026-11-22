@@ -9,7 +9,9 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
 # Fail on user changes rather than silently clobbering them.
-git pull --ff-only
+# The phone-hotspot HTTPS route previously produced intermittent HTTP/2 errors.
+# Use HTTP/1.1 only for this pull; do not mutate global Git configuration.
+git -c http.version=HTTP/1.1 pull --ff-only
 python3 -m pytest -q tests/test_remote_bridge.py tests/test_dev_agent.py
 
 if systemctl is-active --quiet jetson-chat-bridge.service 2>/dev/null; then
