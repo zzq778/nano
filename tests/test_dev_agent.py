@@ -100,6 +100,29 @@ class SafeWorkspaceTests(unittest.TestCase):
             dev_agent.run_check({'action': 'run_check', 'check': 'pytest',
                                  'test_file': '../outside.py'}, bridge.capture_command)
 
+    def test_r41_fixed_preflight_actions_have_no_request_arguments(self):
+        commands = {
+            'r41_readiness': ['python3', 'tools/r41_device_readiness.py'],
+            'r41_preflight_quick': ['python3', 'tools/r41_preflight.py',
+                                    '--tier', 'quick'],
+        }
+        with mock.patch.object(dev_agent, 'require_checkout_files') as ready, \
+                mock.patch.object(bridge, 'capture_command',
+                                  return_value={'returncode': 0}) as capture:
+            for action, expected in commands.items():
+                with self.subTest(check=action):
+                    capture.reset_mock()
+                    result = dev_agent.run_check({'action': 'run_check',
+                                                  'check': action}, capture)
+                    self.assertEqual(capture.call_args[0][0], expected)
+                    self.assertEqual(capture.call_args[1]['cwd'], self.root)
+                    self.assertEqual(result['returncode'], 0)
+                    with self.assertRaises(ValueError):
+                        dev_agent.run_check({'action': 'run_check',
+                                             'check': action,
+                                             'test_file': 'tests/test_anything.py'}, capture)
+            self.assertEqual(ready.call_count, 4)
+
     def test_rejects_unexpected_parameters(self):
         with self.assertRaises(ValueError):
             dev_agent.read_code({'action': 'read_code', 'path': 'README.md',
