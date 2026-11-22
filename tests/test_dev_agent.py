@@ -152,8 +152,10 @@ class GitSyncIntegration(unittest.TestCase):
             run(['git', 'add', 'README.md'], src)
             run(['git', 'commit', '-qm', 'initial'], src)
             run(['git', 'checkout', '-qb', 'chat/test-1'], src)
-            run(['git', 'init', '--bare', '-q', str(bare)])
-            run(['git', 'push', '-q', str(bare), 'main', 'chat/test-1'])
+            # Clone the two local branches into a bare repository. Unlike
+            # pushing both refspecs, this requires no local receive-pack
+            # hooks/config and behaves consistently on Jetson's older Git.
+            run(['git', 'clone', '--bare', '-q', str(src), str(bare)])
             run(['git', '--git-dir', str(bare), 'symbolic-ref', 'HEAD',
                  'refs/heads/main'])
             sha = run(['git', 'rev-parse', 'chat/test-1'], src)
