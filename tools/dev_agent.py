@@ -34,6 +34,8 @@ def require_keys(job, allowed):
 
 
 def require_work_root():
+    if WORK_ROOT.is_symlink():
+        raise RuntimeError('Development workspace may not be a symlink')
     if not WORK_ROOT.is_dir() or not (WORK_ROOT / '.git').exists():
         raise RuntimeError('Development workspace missing; first run sync_code')
     return WORK_ROOT
@@ -246,6 +248,10 @@ def run_check(job, capture):
         raise ValueError('Unsupported check')
     root = require_work_root()
     require_checkout_files(root)
+    if name in ('native_build', 'cmake_configure', 'cmake_build'):
+        output_dir = root / 'build_chat_verify'
+        if output_dir.is_symlink() or (output_dir.exists() and not output_dir.is_dir()):
+            raise RuntimeError('Refusing unsafe native build directory')
     checks = {
         'pytest': (['python3', '-m', 'pytest', '-q', 'tests'], 420),
         'nms_smoke': (['bash', 'scripts/phone_nms_smoke.sh'], 180),

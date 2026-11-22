@@ -100,6 +100,24 @@ class SafeWorkspaceTests(unittest.TestCase):
             dev_agent.run_check({'action': 'run_check', 'check': 'pytest',
                                  'test_file': '../outside.py'}, bridge.capture_command)
 
+    def test_native_build_rejects_symlinked_output(self):
+        (self.root / 'build_chat_verify').symlink_to(self.tmp.name)
+        with mock.patch.object(dev_agent, 'require_checkout_files'), \
+                mock.patch.object(bridge, 'capture_command') as capture:
+            for check in ('native_build', 'cmake_configure', 'cmake_build'):
+                with self.subTest(check=check), \
+                        self.assertRaisesRegex(RuntimeError, 'unsafe native build'):
+                    dev_agent.run_check({'action': 'run_check',
+                                         'check': check}, capture)
+            capture.assert_not_called()
+
+    def test_rejects_symlinked_workspace_root(self):
+        link = Path(self.tmp.name) / 'workspace_link'
+        link.symlink_to(self.root, target_is_directory=True)
+        with mock.patch.object(dev_agent, 'WORK_ROOT', link), \
+                self.assertRaisesRegex(RuntimeError, 'may not be a symlink'):
+            dev_agent.require_work_root()
+
     def test_r41_fixed_preflight_actions_have_no_request_arguments(self):
         commands = {
             'r41_readiness': ['python3', 'tools/r41_device_readiness.py'],
