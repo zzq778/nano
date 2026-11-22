@@ -67,9 +67,11 @@ def has_checkout_collision(root, paths):
     # whether a force checkout of a truly empty worktree is safe.
     for relative in paths:
         current = root
-        for part in pathlib.PurePosixPath(relative).parts:
+        parts = pathlib.PurePosixPath(relative).parts
+        for index, part in enumerate(parts):
             current = current / part
-            if current.is_file() or current.is_symlink():
+            if (current.is_file() or current.is_symlink() or
+                    (index == len(parts) - 1 and current.is_dir())):
                 return True
     return False
 

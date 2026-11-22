@@ -266,6 +266,33 @@ class GitSyncIntegration(unittest.TestCase):
                                          'expected_sha': sha}, bridge.capture_command)
             self.assertEqual((workspace / 'README.md').read_text(), 'local edit\n')
 
+    def test_first_checkout_preserves_untracked_directory_collision(self):
+        with tempfile.TemporaryDirectory() as temp:
+            src = Path(temp) / 'src'
+            bare = Path(temp) / 'origin.git'
+            workspace = Path(temp) / 'workspace'
+            src.mkdir()
+            run(['git', 'init', '-q'], src)
+            run(['git', 'config', 'user.email', 'test@example.com'], src)
+            run(['git', 'config', 'user.name', 'Test'], src)
+            run(['git', 'checkout', '-qb', 'main'], src)
+            (src / 'README.md').write_text('original\n')
+            run(['git', 'add', 'README.md'], src)
+            run(['git', 'commit', '-qm', 'initial'], src)
+            run(['git', 'checkout', '-qb', 'chat/test-1'], src)
+            run(['git', 'clone', '--bare', '-q', str(src), str(bare)])
+            sha = run(['git', 'rev-parse', 'chat/test-1'], src)
+            run(['git', 'clone', '--no-checkout', '-q', str(bare), str(workspace)])
+            (workspace / 'README.md').mkdir()
+            (workspace / 'README.md' / 'private').write_text('keep')
+            with mock.patch.object(dev_agent, 'WORK_ROOT', workspace), \
+                    mock.patch.object(dev_agent, 'PUBLIC_SOURCE_URL', str(bare)):
+                with self.assertRaisesRegex(RuntimeError, 'Tracked changes'):
+                    dev_agent.sync_code({'action': 'sync_code',
+                                         'branch': 'chat/test-1',
+                                         'expected_sha': sha}, bridge.capture_command)
+            self.assertEqual((workspace / 'README.md' / 'private').read_text(), 'keep')
+
     def test_empty_checkout_refuses_checks(self):
         with tempfile.TemporaryDirectory() as temp:
             workspace = Path(temp) / 'workspace'
