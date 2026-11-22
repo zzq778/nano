@@ -146,6 +146,15 @@ class NativeFreePreflightTests(unittest.TestCase):
         self.assertEqual(report['vdd_in_instant_mw']['mean'],3400)
         self.assertTrue(report['warnings'])
 
+    def test_arm64_build_script_cannot_redirect_into_production_build(self):
+        script=ROOT/'scripts/build_native_on_jetson.sh'
+        body=script.read_text()
+        self.assertIn('build_dir="$repo_root/build_chat_verify"',body)
+        self.assertNotIn('BUILD_DIR:-',body)
+        self.assertIn('if [ -L "$build_dir" ]',body)
+        response=subprocess.run(['bash','-n',str(script)],capture_output=True)
+        self.assertEqual(response.returncode,0,response.stderr.decode('utf-8','replace'))
+
     def test_readonly_device_probe_has_no_device_actions(self):
         module=load('r41_device_readiness')
         with tempfile.TemporaryDirectory() as d:

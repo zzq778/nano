@@ -94,3 +94,10 @@ python3 tools/r41_color_diagnostic.py --normal /path/normal1.png /path/normal2.p
 - 现有运行日志若出现 `frame_error`，统计器会单独报告失败帧数，并从阶段计算耗时与目标数分布中排除这些失败帧，防止异常帧极短耗时带来虚假的性能提升；`wall_with_json_ms` 与总循环 Hz 可能仍包含失败帧，报告会给出警告。
 - 新版代理可选的固定命令 `r41_readiness` 与 `r41_preflight_quick` 不接受上传的脚本路径、自由 Shell 或自定义执行参数。前者只读检查设备资源；后者仅在隔离检出工作区运行 Python/C++ 离线测试。**两个命令均不能代替相机、TensorRT、真实串口和温度测试。**
 - Python 3.6 兼容性在本机仅完成语法级检查，不等于 Jetson 18.04 上的运行时验证；构建 SDK 兼容性和 ABI 必须在 Nano 上确认。
+
+## 7. 隔离编译与防误写规则
+
+- `scripts/build_native_on_jetson.sh` 的目标输出固定为当前**独立源码检出目录**下的 `build_chat_verify/`，不再读取外部 `BUILD_DIR` 环境变量，也不使用生产运行目录的 `build/`。若该路径为符号链接或非目录，直接拒绝构建。
+- Jetson Nano 的原生编译并行度限制在 `JOBS=1` 或 `JOBS=2`；未获授权不更改生产 `.so`，不切换电源模式、不接管相机/串口。
+- 远程代理对独立工作目录和构建输出加入符号链接保护。仅在固定提交哈希与工作区检查通过后，才执行任何编译或测试。
+- 固定的代理检查名称：`r41_readiness`（只读设备资源报告）、`r41_preflight_quick`（隔离目录 CPU 离线快速预检，自动调用哈希锁定 r40 C++ 基准）。这两个检查都不意味着完整的 TensorRT、原始色彩或硬件联调通过。
