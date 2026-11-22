@@ -152,6 +152,9 @@ class NativeFreePreflightTests(unittest.TestCase):
         self.assertIn('build_dir="$repo_root/build_chat_verify"',body)
         self.assertNotIn('BUILD_DIR:-',body)
         self.assertIn('if [ -L "$build_dir" ]',body)
+        self.assertNotIn('args=(-S',body)
+        self.assertNotIn('cmake --build "$build_dir" --parallel',body)
+        self.assertIn('cmake --build "$build_dir" -- -j"$jobs"',body)
         response=subprocess.run(['bash','-n',str(script)],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(response.returncode,0,response.stderr.decode('utf-8','replace'))

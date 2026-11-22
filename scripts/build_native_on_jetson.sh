@@ -22,11 +22,14 @@ if [ "$jobs" != 1 ] && [ "$jobs" != 2 ]; then
   echo 'JOBS must be 1 or 2 on Jetson Nano.' >&2
   exit 2
 fi
-args=(-S . -B "$build_dir" -DCMAKE_BUILD_TYPE=Release -DWITH_TENSORRT=ON)
+# Ubuntu 18.04 ships CMake 3.10, which does not support -S/-B or
+# cmake --build --parallel. Configure from the isolated build directory.
+mkdir -p "$build_dir"
+args=("$repo_root" -DCMAKE_BUILD_TYPE=Release -DWITH_TENSORRT=ON)
 if [ -n "${ASTRA_SDK_ROOT:-}" ]; then
   args+=("-DASTRA_SDK_ROOT=$ASTRA_SDK_ROOT")
 fi
-cmake "${args[@]}"
-cmake --build "$build_dir" --parallel "$jobs"
+(cd "$build_dir" && cmake "${args[@]}")
+cmake --build "$build_dir" -- -j"$jobs"
 echo "Build completed: $build_dir"
 echo 'Do not overwrite existing build/*.so until the behavior and ABI have been verified on Nano.'
