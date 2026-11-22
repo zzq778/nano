@@ -185,7 +185,10 @@ class GitSyncIntegration(unittest.TestCase):
                      'expected_sha': sha}, bridge.capture_command)
                 self.assertEqual(result['head'], sha)
                 self.assertEqual((workspace / 'README.md').read_text(), 'from-main\n')
-                self.assertFalse(run(['git', 'status', '--porcelain'], workspace))
+                self.assertFalse(run(['git', 'status', '--porcelain',
+                                      '--untracked-files=no'], workspace))
+                self.assertEqual((workspace / '.pytest_cache' / 'readme').read_text(),
+                                 'test cache')
 
     def test_sync_from_unborn_head(self):
         # An origin may point HEAD at a missing default branch.
