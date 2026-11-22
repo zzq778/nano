@@ -62,7 +62,8 @@ def sync_code(job, capture):
         raise ValueError('expected_sha must be the reviewed 40-character commit SHA')
     if not WORK_ROOT.exists():
         WORK_ROOT.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        run_checked(capture, ['git', 'clone', '--no-checkout',
+        run_checked(capture, ['git', '-c', 'http.version=HTTP/1.1',
+                              'clone', '--no-checkout',
                               PUBLIC_SOURCE_URL, str(WORK_ROOT)], 180)
     root = require_work_root()
     origin = repo_command(capture, 'remote', 'get-url', 'origin')
@@ -75,7 +76,8 @@ def sync_code(job, capture):
     if not empty_checkout and repo_command(capture, 'status', '--porcelain', '--untracked-files=no'):
         raise RuntimeError('Tracked changes exist in development workspace; refusing checkout')
     ref = 'refs/remotes/origin/' + branch
-    run_checked(capture, ['git', '-C', str(root), 'fetch', '--no-tags',
+    run_checked(capture, ['git', '-c', 'http.version=HTTP/1.1',
+                          '-C', str(root), 'fetch', '--no-tags',
                           'origin', 'refs/heads/' + branch + ':' + ref], 180)
     actual_sha = repo_command(capture, 'rev-parse', ref)
     if actual_sha != expected_sha:

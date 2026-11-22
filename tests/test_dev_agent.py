@@ -19,8 +19,12 @@ spec.loader.exec_module(bridge)
 
 
 def run(args, cwd=None):
-    return subprocess.check_output(args, cwd=str(cwd) if cwd else None,
-                                   stderr=subprocess.STDOUT).decode('utf-8', 'replace').strip()
+    try:
+        return subprocess.check_output(args, cwd=str(cwd) if cwd else None,
+                                       stderr=subprocess.STDOUT).decode('utf-8', 'replace').strip()
+    except subprocess.CalledProcessError as error:
+        output = (error.output or b'').decode('utf-8', 'replace')
+        raise AssertionError('Git fixture command failed: {}\\n{}'.format(args, output)) from error
 
 
 class SafeWorkspaceTests(unittest.TestCase):
