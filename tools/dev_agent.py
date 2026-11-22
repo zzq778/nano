@@ -52,6 +52,16 @@ def repo_command(capture, *args):
     return run_checked(capture, ['git', '-C', str(root)] + list(args))['output'].strip()
 
 
+def head_files(capture, root):
+    # clone --no-checkout can have an empty index: ls-files returns nothing,
+    # while HEAD still contains tracked paths and status reports deletions.
+    listing = run_checked(capture, ['git', '-C', str(root), 'ls-tree',
+                                    '-r', '--name-only', '-z', 'HEAD'])
+    if listing['output_truncated']:
+        raise RuntimeError('HEAD file list exceeds bounded output')
+    return [name for name in listing['output'].split('\x00') if name]
+
+
 def sync_code(job, capture):
     require_keys(job, ('branch', 'expected_sha'))
     branch = job.get('branch')
@@ -75,7 +85,7 @@ def sync_code(job, capture):
     # The first unsuccessful checkout may have left .pytest_cache or other
     # untracked diagnostic files alongside .git. Detect a truly unpopulated
     # checkout using tracked paths, not the directory's entry count.
-    tracked = tracked_sources(capture)
+    tracked = head_files(capture, root)
     empty_checkout = bool(tracked) and not any(
         (root / path).exists() or (root / path).is_symlink() for path in tracked)
     if empty_checkout:
@@ -210,7 +220,7 @@ def run_check(job, capture):
     if {entry.name for entry in root.iterdir()} == {'.git'}:
         raise RuntimeError('Development checkout is empty; first run sync_code')
     if not any((root / path).exists() or (root / path).is_symlink()
-               for path in tracked_sources(capture)):
+               for path in head_files(capture, root)):
         raise RuntimeError('Development checkout is empty; first run sync_code')
     checks = {
         'pytest': (['python3', '-m', 'pytest', '-q', 'tests'], 420),
