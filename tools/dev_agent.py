@@ -207,6 +207,8 @@ def run_check(job, capture):
     if name not in CHECKS:
         raise ValueError('Unsupported check')
     root = require_work_root()
+    if {entry.name for entry in root.iterdir()} == {'.git'}:
+        raise RuntimeError('Development checkout is empty; first run sync_code')
     if not any((root / path).exists() or (root / path).is_symlink()
                for path in tracked_sources(capture)):
         raise RuntimeError('Development checkout is empty; first run sync_code')
