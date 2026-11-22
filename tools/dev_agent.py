@@ -72,8 +72,17 @@ def sync_code(job, capture):
     # git clone --no-checkout leaves only .git, while Git reports every
     # tracked file as deleted. An empty checkout contains no user work to
     # overwrite; it is safe to populate after verifying the exact commit.
-    empty_checkout = {entry.name for entry in root.iterdir()} == {'.git'}
-    if not empty_checkout and repo_command(capture, 'status', '--porcelain', '--untracked-files=no'):
+    # The first unsuccessful checkout may have left .pytest_cache or other
+    # untracked diagnostic files alongside .git. Detect a truly unpopulated
+    # checkout using tracked paths, not the directory's entry count.
+    tracked = tracked_sources(capture)
+    empty_checkout = bool(tracked) and not any(
+        (root / path).exists() or (root / path).is_symlink() for path in tracked)
+    if empty_checkout:
+        # All tracked files are absent, so this cannot overwrite their
+        # contents. Populate the original HEAD before switching commits.
+        run_checked(capture, ['git', '-C', str(root), 'checkout', 'HEAD', '--', '.'], 90)
+    elif repo_command(capture, 'status', '--porcelain', '--untracked-files=no'):
         raise RuntimeError('Tracked changes exist in development workspace; refusing checkout')
     ref = 'refs/remotes/origin/' + branch
     run_checked(capture, ['git', '-c', 'http.version=HTTP/1.1',
@@ -198,7 +207,8 @@ def run_check(job, capture):
     if name not in CHECKS:
         raise ValueError('Unsupported check')
     root = require_work_root()
-    if {entry.name for entry in root.iterdir()} == {'.git'}:
+    if not any((root / path).exists() or (root / path).is_symlink()
+               for path in tracked_sources(capture)):
         raise RuntimeError('Development checkout is empty; first run sync_code')
     checks = {
         'pytest': (['python3', '-m', 'pytest', '-q', 'tests'], 420),
