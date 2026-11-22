@@ -87,9 +87,12 @@ class SafeWorkspaceTests(unittest.TestCase):
             capture.assert_not_called()
 
     def test_pytest_arguments_are_fixed_and_scoped(self):
-        with mock.patch.object(bridge, 'capture_command', return_value={'returncode': 0}) as capture:
+        with mock.patch.object(dev_agent, 'require_checkout_files') as ready, \
+                mock.patch.object(bridge, 'capture_command',
+                                  return_value={'returncode': 0}) as capture:
             dev_agent.run_check({'action': 'run_check', 'check': 'pytest',
                                  'test_file': 'tests/test_example.py'}, capture)
+            ready.assert_called_once_with(self.root)
             self.assertEqual(capture.call_args[0][0],
                              ['python3', '-m', 'pytest', '-q', 'tests/test_example.py'])
             self.assertEqual(capture.call_args[1]['cwd'], self.root)
@@ -183,6 +186,55 @@ class GitSyncIntegration(unittest.TestCase):
                 self.assertEqual(result['head'], sha)
                 self.assertEqual((workspace / 'README.md').read_text(), 'from-main\n')
                 self.assertFalse(run(['git', 'status', '--porcelain'], workspace))
+
+    def test_sync_from_unborn_head(self):
+        # An origin may point HEAD at a missing default branch.
+        with tempfile.TemporaryDirectory() as temp:
+            src = Path(temp) / 'src'
+            bare = Path(temp) / 'origin.git'
+            workspace = Path(temp) / 'workspace'
+            src.mkdir()
+            run(['git', 'init', '-q'], src)
+            run(['git', 'config', 'user.email', 'test@example.com'], src)
+            run(['git', 'config', 'user.name', 'Test'], src)
+            (src / 'README.md').write_text('content\n')
+            run(['git', 'add', 'README.md'], src)
+            run(['git', 'commit', '-qm', 'initial'], src)
+            run(['git', 'checkout', '-qb', 'chat/test-1'], src)
+            run(['git', 'clone', '--bare', '-q', str(src), str(bare)])
+            run(['git', '--git-dir', str(bare), 'symbolic-ref', 'HEAD',
+                 'refs/heads/missing-default'])
+            sha = run(['git', 'rev-parse', 'chat/test-1'], src)
+            with mock.patch.object(dev_agent, 'WORK_ROOT', workspace), \
+                    mock.patch.object(dev_agent, 'PUBLIC_SOURCE_URL', str(bare)):
+                result = dev_agent.sync_code(
+                    {'action': 'sync_code', 'branch': 'chat/test-1',
+                     'expected_sha': sha}, bridge.capture_command)
+                self.assertEqual(result['head'], sha)
+                self.assertEqual((workspace / 'README.md').read_text(), 'content\n')
+
+    def test_wrong_expected_sha_never_checks_out_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            src = Path(temp) / 'src'
+            bare = Path(temp) / 'origin.git'
+            workspace = Path(temp) / 'workspace'
+            src.mkdir()
+            run(['git', 'init', '-q'], src)
+            run(['git', 'config', 'user.email', 'test@example.com'], src)
+            run(['git', 'config', 'user.name', 'Test'], src)
+            (src / 'README.md').write_text('source\n')
+            run(['git', 'add', 'README.md'], src)
+            run(['git', 'commit', '-qm', 'initial'], src)
+            run(['git', 'checkout', '-qb', 'chat/test-1'], src)
+            run(['git', 'clone', '--bare', '-q', str(src), str(bare)])
+            with mock.patch.object(dev_agent, 'WORK_ROOT', workspace), \
+                    mock.patch.object(dev_agent, 'PUBLIC_SOURCE_URL', str(bare)):
+                with self.assertRaisesRegex(RuntimeError, 'Branch moved after review'):
+                    dev_agent.sync_code({'action': 'sync_code',
+                                         'branch': 'chat/test-1',
+                                         'expected_sha': '0' * 40},
+                                        bridge.capture_command)
+            self.assertFalse((workspace / 'README.md').exists())
 
     def test_partial_checkout_refuses_overwrite(self):
         with tempfile.TemporaryDirectory() as temp:

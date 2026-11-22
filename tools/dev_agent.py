@@ -52,14 +52,34 @@ def repo_command(capture, *args):
     return run_checked(capture, ['git', '-C', str(root)] + list(args))['output'].strip()
 
 
-def head_files(capture, root):
-    # clone --no-checkout can have an empty index: ls-files returns nothing,
-    # while HEAD still contains tracked paths and status reports deletions.
+def tree_files(capture, root, ref):
+    # Read tracked paths from a verified Git tree. A --no-checkout clone
+    # may have no valid HEAD and no entries in its index.
     listing = run_checked(capture, ['git', '-C', str(root), 'ls-tree',
-                                    '-r', '--name-only', '-z', 'HEAD'])
+                                    '-r', '--name-only', '-z', ref])
     if listing['output_truncated']:
-        raise RuntimeError('HEAD file list exceeds bounded output')
+        raise RuntimeError('Git tree file list exceeds bounded output')
     return [name for name in listing['output'].split('\x00') if name]
+
+
+def has_checkout_collision(root, paths):
+    # Do not overwrite existing files or follow symlinks when deciding
+    # whether a force checkout of a truly empty worktree is safe.
+    for relative in paths:
+        current = root
+        for part in pathlib.PurePosixPath(relative).parts:
+            current = current / part
+            if current.is_file() or current.is_symlink():
+                return True
+    return False
+
+
+def require_checkout_files(root):
+    # compileall exits zero on nonexistent directories. Check real files.
+    expected = ('README.md', 'tools/dev_agent.py',
+                'tests/test_dev_agent.py', 'python/rescuevision/pipeline.py')
+    if not all((root / path).is_file() for path in expected):
+        raise RuntimeError('Development checkout is empty or incomplete; first run sync_code')
 
 
 def sync_code(job, capture):
@@ -79,21 +99,7 @@ def sync_code(job, capture):
     origin = repo_command(capture, 'remote', 'get-url', 'origin')
     if origin != PUBLIC_SOURCE_URL:
         raise RuntimeError('Unexpected remote origin; development workspace unchanged')
-    # git clone --no-checkout leaves only .git, while Git reports every
-    # tracked file as deleted. An empty checkout contains no user work to
-    # overwrite; it is safe to populate after verifying the exact commit.
-    # The first unsuccessful checkout may have left .pytest_cache or other
-    # untracked diagnostic files alongside .git. Detect a truly unpopulated
-    # checkout using tracked paths, not the directory's entry count.
-    tracked = head_files(capture, root)
-    empty_checkout = bool(tracked) and not any(
-        (root / path).exists() or (root / path).is_symlink() for path in tracked)
-    if empty_checkout:
-        # All tracked files are absent, so this cannot overwrite their
-        # contents. Populate the original HEAD before switching commits.
-        run_checked(capture, ['git', '-C', str(root), 'checkout', 'HEAD', '--', '.'], 90)
-    elif repo_command(capture, 'status', '--porcelain', '--untracked-files=no'):
-        raise RuntimeError('Tracked changes exist in development workspace; refusing checkout')
+    # Fetch and verify the exact reviewed commit before writing files.
     ref = 'refs/remotes/origin/' + branch
     run_checked(capture, ['git', '-c', 'http.version=HTTP/1.1',
                           '-C', str(root), 'fetch', '--no-tags',
@@ -101,7 +107,26 @@ def sync_code(job, capture):
     actual_sha = repo_command(capture, 'rev-parse', ref)
     if actual_sha != expected_sha:
         raise RuntimeError('Branch moved after review; refusing to execute unverified code')
-    run_checked(capture, ['git', '-C', str(root), 'checkout', '--detach', ref], 90)
+
+    target_paths = tree_files(capture, root, ref)
+    head_result = capture(['git', '-C', str(root), 'rev-parse',
+                           '--verify', 'HEAD'], 10)
+    head_valid = head_result['returncode'] == 0
+    previous_paths = tree_files(capture, root, 'HEAD') if head_valid else []
+    candidates = set(target_paths).union(previous_paths)
+    empty_checkout = bool(candidates) and not has_checkout_collision(root, candidates)
+    if empty_checkout:
+        # No tracked file is on disk. Only here is force checkout safe,
+        # even when HEAD is unborn or the index holds staged deletions.
+        run_checked(capture, ['git', '-C', str(root), 'checkout',
+                              '--force', '--detach', ref], 90)
+    else:
+        if (not head_valid or
+                repo_command(capture, 'status', '--porcelain',
+                             '--untracked-files=no')):
+            raise RuntimeError('Tracked changes exist in development workspace; refusing checkout')
+        run_checked(capture, ['git', '-C', str(root), 'checkout',
+                              '--detach', ref], 90)
     return {'branch': branch, 'head': repo_command(capture, 'rev-parse', 'HEAD'),
             'source': PUBLIC_SOURCE_URL, 'workspace': str(root)}
 
@@ -217,11 +242,7 @@ def run_check(job, capture):
     if name not in CHECKS:
         raise ValueError('Unsupported check')
     root = require_work_root()
-    if {entry.name for entry in root.iterdir()} == {'.git'}:
-        raise RuntimeError('Development checkout is empty; first run sync_code')
-    if not any((root / path).exists() or (root / path).is_symlink()
-               for path in head_files(capture, root)):
-        raise RuntimeError('Development checkout is empty; first run sync_code')
+    require_checkout_files(root)
     checks = {
         'pytest': (['python3', '-m', 'pytest', '-q', 'tests'], 420),
         'nms_smoke': (['bash', 'scripts/phone_nms_smoke.sh'], 180),
