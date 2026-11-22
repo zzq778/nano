@@ -169,6 +169,11 @@ class GitSyncIntegration(unittest.TestCase):
             # unpopulated checkout; they must not block safe first sync.
             (workspace / '.pytest_cache').mkdir()
             (workspace / '.pytest_cache' / 'readme').write_text('test cache')
+            # A --no-checkout clone has no staged entries, despite HEAD
+            # containing source files. Checking ls-files would miss this.
+            self.assertFalse(run(['git', 'ls-files'], workspace))
+            self.assertEqual(run(['git', 'ls-tree', '-r', '--name-only',
+                                  'HEAD'], workspace), 'README.md')
             self.assertIn('D  README.md', run(['git', 'status', '--porcelain'], workspace))
             with mock.patch.object(dev_agent, 'WORK_ROOT', workspace), \
                     mock.patch.object(dev_agent, 'PUBLIC_SOURCE_URL', str(bare)):
