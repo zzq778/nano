@@ -29,7 +29,7 @@ echo "$PREFIX"
 pkg update -y
 pkg install -y python curl android-tools python-pillow
 mkdir -p ~/chat-mobile-agent && cd ~/chat-mobile-agent
-curl -fL --retry 3 -o phone_agent.py 'https://raw.githubusercontent.com/zzq778/nano/feature/mobile-agent-v2/tools/phone_agent.py'
+curl -fL --retry 3 -o phone_agent.py 'https://raw.githubusercontent.com/zzq778/nano/93e0ca1686d99ee17e65a8c47961b2b28deb16dd/tools/phone_agent.py'
 python -m py_compile phone_agent.py
 python phone_agent.py setup
 python phone_agent.py once
