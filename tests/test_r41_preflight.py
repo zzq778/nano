@@ -152,7 +152,8 @@ class NativeFreePreflightTests(unittest.TestCase):
         self.assertIn('build_dir="$repo_root/build_chat_verify"',body)
         self.assertNotIn('BUILD_DIR:-',body)
         self.assertIn('if [ -L "$build_dir" ]',body)
-        response=subprocess.run(['bash','-n',str(script)],capture_output=True)
+        response=subprocess.run(['bash','-n',str(script)],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(response.returncode,0,response.stderr.decode('utf-8','replace'))
 
     def test_readonly_device_probe_has_no_device_actions(self):

@@ -28,7 +28,8 @@ class OccupiedRoiContracts(unittest.TestCase):
         for _ in range(160):
             mask = np.zeros((64, 96), np.uint8)
             for j in range(int(rng.randint(1, 18))):
-                x, y = map(int, rng.randint([0, 0], [96, 64]))
+                x = int(rng.randint(0, 96))
+                y = int(rng.randint(0, 64))
                 w, h = map(int, rng.randint(1, 25, 2))
                 cv2.rectangle(mask, (x, y), (min(x+w, 95), min(y+h, 63)), 255, -1)
             # Include islands, thin diagonal connections, and open holes.
