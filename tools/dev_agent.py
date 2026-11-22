@@ -246,6 +246,15 @@ def run_check(job, capture):
     name = job.get('check')
     if name not in CHECKS:
         raise ValueError('Unsupported check')
+    # Reject invalid request arguments before inspecting the workspace.
+    # This guarantees deterministic input errors and no filesystem access.
+    test_file = job.get('test_file')
+    if test_file is not None:
+        if name != 'pytest':
+            raise ValueError('test_file can be used only with pytest')
+        if (not isinstance(test_file, str) or
+                not re.fullmatch(r'tests/test_[a-zA-Z0-9_]+\.py', test_file)):
+            raise ValueError('test_file must be tests/test_<name>.py')
     root = require_work_root()
     require_checkout_files(root)
     if name in ('native_build', 'cmake_configure', 'cmake_build'):
@@ -268,13 +277,8 @@ def run_check(job, capture):
                                  '--tier', 'quick'], 600),
     }
     command, timeout = checks[name]
-    if name == 'pytest' and job.get('test_file') is not None:
-        test_file = job['test_file']
-        if not isinstance(test_file, str) or not re.fullmatch(r'tests/test_[a-zA-Z0-9_]+\.py', test_file):
-            raise ValueError('test_file must be tests/test_<name>.py')
+    if test_file is not None:
         command = ['python3', '-m', 'pytest', '-q', test_file]
-    elif job.get('test_file') is not None:
-        raise ValueError('test_file can be used only with pytest')
     return capture(command, timeout, cwd=root)
 
 
