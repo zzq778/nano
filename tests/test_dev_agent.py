@@ -165,6 +165,10 @@ class GitSyncIntegration(unittest.TestCase):
             sha = run(['git', 'rev-parse', 'chat/test-1'], src)
             run(['git', 'clone', '--no-checkout', '-q', str(bare), str(workspace)])
             self.assertEqual({p.name for p in workspace.iterdir()}, {'.git'})
+            # Failed checks can leave untracked cache files in this otherwise
+            # unpopulated checkout; they must not block safe first sync.
+            (workspace / '.pytest_cache').mkdir()
+            (workspace / '.pytest_cache' / 'readme').write_text('test cache')
             self.assertIn('D  README.md', run(['git', 'status', '--porcelain'], workspace))
             with mock.patch.object(dev_agent, 'WORK_ROOT', workspace), \
                     mock.patch.object(dev_agent, 'PUBLIC_SOURCE_URL', str(bare)):
@@ -174,6 +178,33 @@ class GitSyncIntegration(unittest.TestCase):
                 self.assertEqual(result['head'], sha)
                 self.assertEqual((workspace / 'README.md').read_text(), 'from-main\n')
                 self.assertFalse(run(['git', 'status', '--porcelain'], workspace))
+
+    def test_partial_checkout_refuses_overwrite(self):
+        with tempfile.TemporaryDirectory() as temp:
+            src = Path(temp) / 'src'
+            bare = Path(temp) / 'origin.git'
+            workspace = Path(temp) / 'workspace'
+            src.mkdir()
+            run(['git', 'init', '-q'], src)
+            run(['git', 'config', 'user.email', 'test@example.com'], src)
+            run(['git', 'config', 'user.name', 'Test'], src)
+            run(['git', 'checkout', '-qb', 'main'], src)
+            (src / 'README.md').write_text('original\n')
+            (src / 'one.py').write_text('one = 1\n')
+            run(['git', 'add', '.'], src)
+            run(['git', 'commit', '-qm', 'initial'], src)
+            run(['git', 'checkout', '-qb', 'chat/test-1'], src)
+            run(['git', 'clone', '--bare', '-q', str(src), str(bare)])
+            sha = run(['git', 'rev-parse', 'chat/test-1'], src)
+            run(['git', 'clone', '--no-checkout', '-q', str(bare), str(workspace)])
+            (workspace / 'README.md').write_text('local edit\n')
+            with mock.patch.object(dev_agent, 'WORK_ROOT', workspace), \
+                    mock.patch.object(dev_agent, 'PUBLIC_SOURCE_URL', str(bare)):
+                with self.assertRaisesRegex(RuntimeError, 'Tracked changes'):
+                    dev_agent.sync_code({'action': 'sync_code',
+                                         'branch': 'chat/test-1',
+                                         'expected_sha': sha}, bridge.capture_command)
+            self.assertEqual((workspace / 'README.md').read_text(), 'local edit\n')
 
     def test_empty_checkout_refuses_checks(self):
         with tempfile.TemporaryDirectory() as temp:
