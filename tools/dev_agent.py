@@ -23,7 +23,8 @@ MAX_RESPONSE_CHARS = 12000
 VALID_ACTIONS = ('sync_code', 'repo_status', 'list_code', 'read_code',
                  'search_code', 'run_check', 'device_info')
 CHECKS = ('pytest', 'nms_smoke', 'compileall', 'native_build',
-          'cmake_configure', 'cmake_build', 'diff_check')
+          'cmake_configure', 'cmake_build', 'diff_check',
+          'r41_readiness', 'r41_preflight_quick')
 
 
 def require_keys(job, allowed):
@@ -33,6 +34,8 @@ def require_keys(job, allowed):
 
 
 def require_work_root():
+    if WORK_ROOT.is_symlink():
+        raise RuntimeError('Development workspace may not be a symlink')
     if not WORK_ROOT.is_dir() or not (WORK_ROOT / '.git').exists():
         raise RuntimeError('Development workspace missing; first run sync_code')
     return WORK_ROOT
@@ -245,6 +248,10 @@ def run_check(job, capture):
         raise ValueError('Unsupported check')
     root = require_work_root()
     require_checkout_files(root)
+    if name in ('native_build', 'cmake_configure', 'cmake_build'):
+        output_dir = root / 'build_chat_verify'
+        if output_dir.is_symlink() or (output_dir.exists() and not output_dir.is_dir()):
+            raise RuntimeError('Refusing unsafe native build directory')
     checks = {
         'pytest': (['python3', '-m', 'pytest', '-q', 'tests'], 420),
         'nms_smoke': (['bash', 'scripts/phone_nms_smoke.sh'], 180),
@@ -254,6 +261,11 @@ def run_check(job, capture):
                              '-DWITH_TENSORRT=ON', '-DCMAKE_BUILD_TYPE=Release'], 180),
         'cmake_build': (['cmake', '--build', 'build_chat_verify', '--parallel', '2'], 900),
         'diff_check': (['git', 'diff', '--check'], 30),
+        # Fixed, parameter-free diagnostics: only sources from the reviewed
+        # isolated checkout are executed. Neither action opens a camera/UART.
+        'r41_readiness': (['python3', 'tools/r41_device_readiness.py'], 30),
+        'r41_preflight_quick': (['python3', 'tools/r41_preflight.py',
+                                 '--tier', 'quick'], 600),
     }
     command, timeout = checks[name]
     if name == 'pytest' and job.get('test_file') is not None:
