@@ -100,6 +100,22 @@ class SafeWorkspaceTests(unittest.TestCase):
             dev_agent.run_check({'action': 'run_check', 'check': 'pytest',
                                  'test_file': '../outside.py'}, bridge.capture_command)
 
+    def test_invalid_test_file_rejected_before_workspace_access(self):
+        invalid = (
+            {'check': 'pytest', 'test_file': '../outside.py'},
+            {'check': 'pytest', 'test_file': 'tests/test_x.py;sh'},
+            {'check': 'pytest', 'test_file': 3},
+            {'check': 'native_build', 'test_file': 'tests/test_example.py'},
+            {'check': 'r41_preflight_quick', 'test_file': 'tests/test_example.py'},
+        )
+        with mock.patch.object(dev_agent, 'require_work_root') as work, \
+                mock.patch.object(bridge, 'capture_command') as capture:
+            for params in invalid:
+                with self.subTest(params=params), self.assertRaises(ValueError):
+                    dev_agent.run_check(dict(action='run_check', **params), capture)
+            work.assert_not_called()
+            capture.assert_not_called()
+
     def test_native_build_rejects_symlinked_output(self):
         (self.root / 'build_chat_verify').symlink_to(self.tmp.name)
         with mock.patch.object(dev_agent, 'require_checkout_files'), \
@@ -139,7 +155,8 @@ class SafeWorkspaceTests(unittest.TestCase):
                         dev_agent.run_check({'action': 'run_check',
                                              'check': action,
                                              'test_file': 'tests/test_anything.py'}, capture)
-            self.assertEqual(ready.call_count, 4)
+            # Invalid parameters are rejected before workspace validation.
+            self.assertEqual(ready.call_count, 2)
 
     def test_rejects_unexpected_parameters(self):
         with self.assertRaises(ValueError):
