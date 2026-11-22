@@ -5,6 +5,7 @@ pixels and synthetic model boxes. Reports detailed output parity and alternating
 run P50/P95. Does not benchmark metric_prepare (OpenCV) or TensorRT.
 """
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -19,6 +20,8 @@ import numpy as np
 
 ROOT=Path(__file__).resolve().parents[1]
 PROBE=ROOT/'tests/model_fit_probe_r41.cpp'
+BUNDLED_R40=ROOT/'tests/reference/model_geometry_r40.cpp'
+BUNDLED_R40_SHA256='de74ef99b87f4b2e081d7c3bc9fff809a48ce81dd840a8f544ec57eb94c8f430'
 
 
 def prepare(root, temp, synthetic_only=False):
@@ -107,9 +110,9 @@ def prepare(root, temp, synthetic_only=False):
     return manifest
 
 
-def build(root,probe,target):
+def build(root,probe,target,model_source=None):
     subprocess.run(['g++','-std=c++14','-O3','-DNDEBUG','-I'+str(root/'vendor_model/include'),
-                    '-I'+str(root/'include'),str(root/'vendor_model/src/model_geometry.cpp'),
+                    '-I'+str(root/'include'),str(model_source or root/'vendor_model/src/model_geometry.cpp'),
                     str(root/'vendor_model/src/ground_geometry.cpp'),str(probe),'-o',str(target)],
                    check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 
@@ -143,18 +146,33 @@ def distribution(samples):
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument('--baseline-root',type=Path,required=True)
+    baseline_group=parser.add_mutually_exclusive_group(required=True)
+    baseline_group.add_argument('--baseline-root',type=Path)
+    baseline_group.add_argument('--bundled-r40',action='store_true',
+                                help='Use the hash-locked r40 model_geometry.cpp fixture')
     parser.add_argument('--iterations',type=int,default=5)
     parser.add_argument('--synthetic-only',action='store_true',
                         help='Run without private Astra images (public-source smoke test)')
     parser.add_argument('--output',type=Path)
     args=parser.parse_args()
     if not (1<=args.iterations<=200):parser.error('iterations must be in 1..200')
+    model_source=None
+    baseline_root=args.baseline_root
+    if args.bundled_r40:
+        digest=hashlib.sha256(BUNDLED_R40.read_bytes()).hexdigest()
+        if digest!=BUNDLED_R40_SHA256:
+            parser.error('Bundled r40 geometry source hash mismatch')
+        baseline_root=ROOT
+        model_source=BUNDLED_R40
+    else:
+        configuration=baseline_root/'configs/runtime.json'
+        if not configuration.is_file() or '-r40-' not in json.loads(configuration.read_text()).get('baseline_id',''):
+            parser.error('--baseline-root must be independent original r40 source')
     cv2.setNumThreads(1)
     with tempfile.TemporaryDirectory(prefix='r41_native_model_') as directory:
         temp=Path(directory);manifest=prepare(ROOT,temp,args.synthetic_only)
         old=temp/'original';new=temp/'candidate'
-        build(args.baseline_root,PROBE,old);build(ROOT,PROBE,new)
+        build(baseline_root,PROBE,old,model_source);build(ROOT,PROBE,new)
         reference=run(old,manifest);candidate=run(new,manifest)
         compare(reference,candidate)
         old_samples=[];new_samples=[]
@@ -169,7 +187,10 @@ def main():
                     if row[1]==1:
                         samples.append(row[-1]);by_case[j].append(row[-1])
         count=len(reference)
-        report=dict(cases=count,valid_ground_rays=sum(row[1]==1 for row in reference),
+        report=dict(baseline_kind=('bundled_r40_cpp_exact' if args.bundled_r40 else 'independent_r40_tree'),
+                    baseline_cpp_sha256=hashlib.sha256((model_source or baseline_root/'vendor_model/src/model_geometry.cpp').read_bytes()).hexdigest(),
+                    candidate_cpp_sha256=hashlib.sha256((ROOT/'vendor_model/src/model_geometry.cpp').read_bytes()).hexdigest(),
+                    cases=count,valid_ground_rays=sum(row[1]==1 for row in reference),
                     statuses={str(v):sum(row[2]==v for row in reference) for v in sorted(set(row[2] for row in reference))},
                     baseline=distribution(old_samples),candidate=distribution(new_samples),
                     equal_output=True,environment='host standalone C++14 -O3, %s' %

@@ -54,6 +54,7 @@ def analyze(lines, summary=None, warmup=0, limit=200000):
     source_drops = 0
     skipped_sequences = 0
     error_rows = 0
+    camera_reopen_rows = 0
     for line_number, line in enumerate(lines, 1):
         if line_number > limit:
             raise ValueError('Log exceeds limit: {} lines'.format(limit))
@@ -69,15 +70,19 @@ def analyze(lines, summary=None, warmup=0, limit=200000):
             source_drops += 1
         if kind == 'runtime_error':
             error_rows += 1
+        if kind == 'camera_reopened':
+            camera_reopen_rows += 1
         if kind == 'wall_timing':
             wall_rows.append(row)
         if isinstance(row.get('timings_ms'), dict) and 'objects' in row:
             result_rows.append(row)
     records = result_rows[warmup:]
+    frame_errors = [r for r in records if r.get('frame_error') is not None]
+    successful_records = [r for r in records if r.get('frame_error') is None]
     stages = {}
     for key in STAGES:
         values = []
-        for r in records:
+        for r in successful_records:
             number = r['timings_ms'].get(key)
             if number is None: continue
             if type(number) not in (int, float):
@@ -94,7 +99,7 @@ def analyze(lines, summary=None, warmup=0, limit=200000):
     }
     for name, keys in native_sources.items():
         values = []
-        for r in records:
+        for r in successful_records:
             diag = r.get('frontend_diagnostics', {})
             if not isinstance(diag, dict):
                 continue
@@ -109,6 +114,8 @@ def analyze(lines, summary=None, warmup=0, limit=200000):
             stages[name] = distribution(values)
     categories = {}
     for r in records:
+        skipped_sequences += max(0, int(r.get('dropped_camera_frames') or 0))
+    for r in successful_records:
         counts = r.get('counts', {})
         if not isinstance(counts, dict):continue
         n = sum(v for v in counts.values() if type(v) is int and v >= 0)
@@ -116,7 +123,6 @@ def analyze(lines, summary=None, warmup=0, limit=200000):
         value = r['timings_ms'].get('compute')
         if type(value) in (int,float):
             categories.setdefault(group, []).append(float(value))
-        skipped_sequences += max(0, int(r.get('dropped_camera_frames') or 0))
     durations = {key: distribution(values) for key,values in sorted(categories.items())}
     wall = [float(r['wall_with_json_ms']) for r in wall_rows[warmup:]
             if type(r.get('wall_with_json_ms')) in (int, float)]
@@ -127,6 +133,9 @@ def analyze(lines, summary=None, warmup=0, limit=200000):
     pacing = summary.get('includes_rate_pacing')
     report = {'schema_version': 1,
               'frames_seen': len(result_rows), 'frames_analyzed': len(records),
+              'successful_frames_analyzed': len(successful_records),
+              'frame_processing_error_records': len(frame_errors),
+              'camera_reopen_records': camera_reopen_rows,
               'warmup_excluded': min(warmup, len(result_rows)),
               'wall_timing_rows': len(wall_rows),
               'source_drop_records': source_drops,
@@ -155,8 +164,10 @@ def analyze(lines, summary=None, warmup=0, limit=200000):
         report['warnings'].append('No physical UART write evidence in selected records.')
     if 'native_tensorrt_and_transfers' not in stages:
         report['warnings'].append('TensorRT+transfer timings absent in this log.')
-    if error_rows or source_drops:
-        report['warnings'].append('Source drops or runtime errors occurred; investigate before performance claims.')
+    if error_rows or source_drops or frame_errors or camera_reopen_rows:
+        report['warnings'].append('Frame processing errors, source drops, camera reopens or runtime errors occurred; investigate before performance claims.')
+    if frame_errors:
+        report['warnings'].append('Per-stage compute distributions exclude frames with frame_error; wall timings and loop Hz may still include them.')
     return report
 
 

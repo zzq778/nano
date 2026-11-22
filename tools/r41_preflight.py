@@ -149,10 +149,14 @@ def run_gate(tier, root, baseline, report_directory=None):
             check('nms_cpu_parity', lambda: execute(
                 ['bash', 'scripts/phone_nms_smoke.sh'], root, 120,
                 {'TMPDIR': temp, 'USER': 'r41_preflight'}))
-        if baseline:
+        if baseline or (root / 'tests/reference/model_geometry_r40.cpp').is_file():
             iterations = 4 if tier == 'quick' else 25
-            benchmark = [sys.executable, 'tools/bench_r41_native.py',
-                         '--baseline-root', str(baseline), '--iterations', str(iterations)]
+            benchmark = [sys.executable, 'tools/bench_r41_native.py']
+            if baseline:
+                benchmark += ['--baseline-root', str(baseline)]
+            else:
+                benchmark += ['--bundled-r40']
+            benchmark += ['--iterations', str(iterations)]
             if not has_replay_fixtures(root):
                 benchmark.append('--synthetic-only')
             if report_directory:

@@ -85,3 +85,12 @@ python3 tools/r41_color_diagnostic.py --normal /path/normal1.png /path/normal2.p
 5. 生产服务替换、真正的硬件串口联调、开启真实相机或改变电源模式**单独确认**；没有该确认不执行。
 
 本轮只准备脚本与测试，不会执行上述 Jetson 步骤。不存在“万无一失”的软件保证，实际目标是通过可重复验收、预检、最小权限与回退把误操作和假结果风险降到可控范围。
+
+## 6. 追加离线核验与远程任务准备（2026-11-22）
+
+- `tests/reference/model_geometry_r40.cpp` 是 r40 原始 `model_geometry.cpp` 的**完整源文件快照**，预期 SHA-256 为 `de74ef99b87f4b2e081d7c3bc9fff809a48ce81dd840a8f544ec57eb94c8f430`。该文件仅用于编译测试，不参与生产运行；哈希不匹配会拒绝基准。
+- **不需要第二份完整 r40 工程**也可执行纯 C++ A/B：`python3 tools/bench_r41_native.py --bundled-r40 --synthetic-only --iterations 25`。两份几何内核共享 r41 的头文件、编译配置与输入，只替换待优化 C++ 源文件，因此测试的是**内核改动本身**，不是完整 r40/r41 系统。
+- `python3 tools/r41_preflight.py --tier quick` 会在无外部 r40 工程时自动使用已锁定的 r40 几何源码比较；其 `r40_protected_source_identity` 和需要私有实拍数据的 `python_pipeline_ab_exact` 仍然明确标记 `SKIP`。完整本机 A/B 仍建议指定独立原始 r40 树。
+- 现有运行日志若出现 `frame_error`，统计器会单独报告失败帧数，并从阶段计算耗时与目标数分布中排除这些失败帧，防止异常帧极短耗时带来虚假的性能提升；`wall_with_json_ms` 与总循环 Hz 可能仍包含失败帧，报告会给出警告。
+- 新版代理可选的固定命令 `r41_readiness` 与 `r41_preflight_quick` 不接受上传的脚本路径、自由 Shell 或自定义执行参数。前者只读检查设备资源；后者仅在隔离检出工作区运行 Python/C++ 离线测试。**两个命令均不能代替相机、TensorRT、真实串口和温度测试。**
+- Python 3.6 兼容性在本机仅完成语法级检查，不等于 Jetson 18.04 上的运行时验证；构建 SDK 兼容性和 ABI 必须在 Nano 上确认。

@@ -42,6 +42,15 @@ class NativeFreePreflightTests(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError,'Protected source differs'):
                 module.source_immutability(a,b)
 
+    def test_bundled_r40_cpp_reference_matches_locked_sha(self):
+        import hashlib
+        probe=load('r41_preflight')
+        baseline=ROOT/'tests/reference/model_geometry_r40.cpp'
+        self.assertTrue(baseline.is_file())
+        digest=hashlib.sha256(baseline.read_bytes()).hexdigest()
+        self.assertEqual(digest,'de74ef99b87f4b2e081d7c3bc9fff809a48ce81dd840a8f544ec57eb94c8f430')
+        self.assertNotEqual(digest,hashlib.sha256((ROOT/'vendor_model/src/model_geometry.cpp').read_bytes()).hexdigest())
+
     def test_runtime_report_quantiles_grouping_and_incomplete_evidence(self):
         module=load('r41_runtime_report')
         rows=[]
@@ -76,6 +85,25 @@ class NativeFreePreflightTests(unittest.TestCase):
         self.assertEqual(report['stage_latency_ms']['native_detector']['n'],2)
         self.assertEqual(report['stage_latency_ms']['native_tensorrt_and_transfers']['n'],2)
         self.assertFalse(any('TensorRT+transfer timings absent' in w for w in report['warnings']))
+
+    def test_failed_frames_do_not_inflate_successful_performance(self):
+        module=load('r41_runtime_report')
+        good={'objects':[], 'counts':{'green':15},
+              'timings_ms':{'compute':12.0},
+              'source_kind':'camera_read_completion_not_exposure'}
+        bad={'objects':[], 'counts':None, 'timings_ms':{'compute':0.01},
+             'frame_error':{'type':'RuntimeError','message':'synthetic failure'},
+             'source_kind':'camera_read_completion_not_exposure'}
+        reopen={'record_kind':'camera_reopened', 'source_sequence_reset':True}
+        output=module.analyze([json.dumps(item) for item in [good,bad,reopen]],warmup=0)
+        self.assertEqual(output['frames_analyzed'],2)
+        self.assertEqual(output['successful_frames_analyzed'],1)
+        self.assertEqual(output['frame_processing_error_records'],1)
+        self.assertEqual(output['camera_reopen_records'],1)
+        self.assertEqual(output['stage_latency_ms']['compute']['n'],1)
+        self.assertEqual(output['stage_latency_ms']['compute']['p50_ms'],12.0)
+        self.assertNotIn('0',output['compute_by_object_count_ms'])
+        self.assertTrue(any('Frame processing errors' in item for item in output['warnings']))
 
     def test_runtime_report_rejects_nonfinite_and_bad_json(self):
         module=load('r41_runtime_report')
